@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      PORT: 3001
+      PORT: 3002
       DATABASE_URL: postgresql://${POSTGRES_USER:-sav_user}:${POSTGRES_PASSWORD:-sav_password}@postgres:5432/${POSTGRES_DB:-sav_db}
       N8N_WEBHOOK_URL: http://n8n:5678/webhook/c88c52a0-fa1e-4bec-9b40-11d2a06585bf/chat
       N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
@@ -50,8 +50,8 @@ services:
       - ./backend:/app
       - /app/node_modules
     ports:
-      - "127.0.0.1:3001:3001"
-      - "127.0.0.1:3000:3001" # backward compatibility (factures API was on 3000)
+      - "127.0.0.1:3002:3002"
+      - "127.0.0.1:3000:3002" # backward compatibility (factures API was on 3000)
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,7 +66,7 @@ services:
     container_name: sav-frontend
     restart: unless-stopped
     environment:
-      VITE_API_BASE_URL: http://localhost:3001/api
+      VITE_API_BASE_URL: http://localhost:3002/api
     volumes:
       - ./frontend:/app
       - /app/node_modules

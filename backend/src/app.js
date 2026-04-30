@@ -95,7 +95,7 @@ async function seedAdvisor() {
 async function start() {
   await runMigrations();
   await seedAdvisor();
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3002;
   app.listen(port, () =>
     console.log(`Backend SAV démarré sur le port ${port}`),
   );

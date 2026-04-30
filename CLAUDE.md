@@ -3,7 +3,7 @@
 ## Architecture
 
 ```
-React (Vite, port 5173)  ←→  Express backend (port 3001)  ←→  PostgreSQL (port 5432)
+React (Vite, port 5173)  ←→  Express backend (port 3002)  ←→  PostgreSQL (port 5432)
                                         ↕
                                n8n webhook (port 5678)
                                (manages sav_sessions draft)
@@ -93,7 +93,7 @@ Critical backend vars: `DATABASE_URL`, `JWT_SECRET`, `N8N_WEBHOOK_URL`, `N8N_BAS
 
 # Backend
 cd backend && cp .env.example .env   # edit as needed
-npm install && npm run dev           # port 3001, runs migrations on start
+npm install && npm run dev           # port 3002, runs migrations on start
 
 # Frontend
 cd frontend && cp .env.example .env
@@ -124,7 +124,7 @@ docker-compose up -d
 | Service | Local port |
 |---|---|
 | Frontend (Vite) | 5173 |
-| Backend (new) | 3001 |
+| Backend (new) | 3002 |
 | API factures (existing) | 3000 |
 | PostgreSQL | 5432 |
 | n8n | 5678 |

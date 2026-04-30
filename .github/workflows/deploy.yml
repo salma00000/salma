@@ -44,7 +44,7 @@ jobs:
             echo ">>> Waiting for backend health check..."
             attempt=0
             max=15
-            until curl -sf http://127.0.0.1:3001/health > /dev/null; do
+            until curl -sf http://127.0.0.1:3002/health > /dev/null; do
               attempt=$((attempt + 1))
               if [ $attempt -ge $max ]; then
                 echo "ERROR: Backend did not become healthy after $max attempts."

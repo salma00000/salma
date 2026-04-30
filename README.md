@@ -11,7 +11,7 @@ Outil interne pour les conseillers de magasin — création de dossiers SAV via 
 └──────────────────────┬──────────────────────────────────┘
                        │ HTTP + JWT
 ┌──────────────────────▼──────────────────────────────────┐
-│  Backend SAV (port 3001)                                │
+│  Backend SAV (port 3002)                                │
 │  Express.js — Auth JWT, Conversations, Proxy n8n        │
 └───────┬──────────────────────────────┬──────────────────┘
         │ pg                           │ axios + Basic Auth
@@ -61,7 +61,7 @@ Le backend exécute les migrations automatiquement au démarrage.
 # Backend
 cd backend
 npm install
-npm run dev      # → http://localhost:3001
+npm run dev      # → http://localhost:3002
 
 # Frontend (autre terminal)
 cd frontend
@@ -71,11 +71,11 @@ npm run dev      # → http://localhost:5173
 
 ## Identifiants de test
 
-| Champ | Valeur |
-|---|---|
-| URL | http://localhost:5173 |
-| E-mail | `advisor@sav.com` |
-| Mot de passe | `password123` |
+| Champ        | Valeur                |
+| ------------ | --------------------- |
+| URL          | http://localhost:5173 |
+| E-mail       | `advisor@sav.com`     |
+| Mot de passe | `password123`         |
 
 ## Configuration n8n
 
@@ -91,29 +91,29 @@ npm run dev      # → http://localhost:5173
 
 ### Auth (`/api/auth`)
 
-| Méthode | Route | Corps | Réponse |
-|---|---|---|---|
-| POST | `/login` | `{ email, password }` | `{ token, advisor }` |
-| GET | `/me` | — | `{ id, email, full_name }` |
+| Méthode | Route    | Corps                 | Réponse                    |
+| ------- | -------- | --------------------- | -------------------------- |
+| POST    | `/login` | `{ email, password }` | `{ token, advisor }`       |
+| GET     | `/me`    | —                     | `{ id, email, full_name }` |
 
 ### Conversations (`/api/conversations`) — JWT requis
 
-| Méthode | Route | Description |
-|---|---|---|
-| GET | `/` | Liste des sessions du conseiller |
-| POST | `/` | Créer une session `{ session_id }` |
-| GET | `/:sessionId` | Détail + draft |
-| DELETE | `/:sessionId` | Supprimer (cascade messages) |
-| GET | `/:sessionId/messages` | Historique des messages |
-| POST | `/:sessionId/messages` | Envoyer un message → proxy n8n |
+| Méthode | Route                  | Description                        |
+| ------- | ---------------------- | ---------------------------------- |
+| GET     | `/`                    | Liste des sessions du conseiller   |
+| POST    | `/`                    | Créer une session `{ session_id }` |
+| GET     | `/:sessionId`          | Détail + draft                     |
+| DELETE  | `/:sessionId`          | Supprimer (cascade messages)       |
+| GET     | `/:sessionId/messages` | Historique des messages            |
+| POST    | `/:sessionId/messages` | Envoyer un message → proxy n8n     |
 
 ## Ports
 
-| Service | Port |
-|---|---|
-| Frontend | 5173 |
-| Backend SAV | 3001 |
-| API factures (existant) | 3000 |
-| PostgreSQL | 5432 |
-| n8n | 5678 |
-| Ollama | 11434 |
+| Service                 | Port  |
+| ----------------------- | ----- |
+| Frontend                | 5173  |
+| Backend SAV             | 3002  |
+| API factures (existant) | 3000  |
+| PostgreSQL              | 5432  |
+| n8n                     | 5678  |
+| Ollama                  | 11434 |
