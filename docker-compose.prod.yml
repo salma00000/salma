@@ -1,0 +1,67 @@
+# Production compose — backend + postgres.
+# Prerequisites on VPS:
+#   - The 'caddy_net' Docker network already exists (created by Caddy)
+#   - A .env file is present at this path (see .env.example)
+
+services:
+  # ─────────────────────────────────────────────────────────────
+  # PostgreSQL 16 — not exposed externally (localhost-only)
+  # ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sav_db}
+      POSTGRES_USER: ${POSTGRES_USER:-sav_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sav_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Port not published — only reachable by other containers on the same network
+    networks:
+      - backend_net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-sav_user} -d ${POSTGRES_DB:-sav_db}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ─────────────────────────────────────────────────────────────
+  # Backend SAV — unified API
+  # ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    image: sav-backend:latest
+    container_name: sav-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      CORS_ORIGIN: https://sav.sparkedge-solutions.com
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sav_user}:${POSTGRES_PASSWORD:-sav_password}@postgres:5432/${POSTGRES_DB:-sav_db}
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - caddy_net
+      - backend_net
+
+volumes:
+  postgres_data:
+
+networks:
+  caddy_net:
+    external: true
+  backend_net:
+    driver: bridge

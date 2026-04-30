@@ -1,29 +1,25 @@
 "use strict";
 
-const router = require("express").Router();
-const c = require("../controllers/conversationsController");
+const {
+  getSession,
+  createSession,
+  computeLabel,
+  listSessions,
+  deleteSession,
+} = require("../services/sessionService");
+const { sendMessage } = require("../services/n8nService");
+const messageModel = require("../models/messageModel");
 
-router.get("/", c.list);
-router.post("/", c.create);
-router.get("/:sessionId", c.get);
-router.delete("/:sessionId", c.remove);
-router.get("/:sessionId/messages", c.getMessages);
-router.post("/:sessionId/messages", c.addMessage);
-
-module.exports = router;
-
-// GET /api/conversations
-router.get("/", async (req, res, next) => {
+async function list(req, res, next) {
   try {
     const sessions = await listSessions(req.advisor.id);
     res.json(sessions);
   } catch (err) {
     next(err);
   }
-});
+}
 
-// POST /api/conversations
-router.post("/", async (req, res, next) => {
+async function create(req, res, next) {
   try {
     const { session_id } = req.body;
     if (!session_id)
@@ -38,10 +34,9 @@ router.post("/", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
 
-// GET /api/conversations/:sessionId
-router.get("/:sessionId", async (req, res, next) => {
+async function get(req, res, next) {
   try {
     const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ error: "Session introuvable" });
@@ -51,10 +46,9 @@ router.get("/:sessionId", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
 
-// DELETE /api/conversations/:sessionId
-router.delete("/:sessionId", async (req, res, next) => {
+async function remove(req, res, next) {
   try {
     const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ error: "Session introuvable" });
@@ -65,28 +59,22 @@ router.delete("/:sessionId", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
 
-// GET /api/conversations/:sessionId/messages
-router.get("/:sessionId/messages", async (req, res, next) => {
+async function getMessages(req, res, next) {
   try {
     const session = await getSession(req.params.sessionId);
     if (!session) return res.status(404).json({ error: "Session introuvable" });
     if (session.advisor_id !== req.advisor.id)
       return res.status(403).json({ error: "Accès refusé" });
-
-    const { rows } = await pool.query(
-      "SELECT * FROM sav_messages WHERE session_id = $1 ORDER BY created_at ASC",
-      [req.params.sessionId],
-    );
-    res.json(rows);
+    const messages = await messageModel.findBySession(req.params.sessionId);
+    res.json(messages);
   } catch (err) {
     next(err);
   }
-});
+}
 
-// POST /api/conversations/:sessionId/messages
-router.post("/:sessionId/messages", async (req, res, next) => {
+async function addMessage(req, res, next) {
   try {
     const { content } = req.body;
     if (!content?.trim())
@@ -97,32 +85,25 @@ router.post("/:sessionId/messages", async (req, res, next) => {
     if (session.advisor_id !== req.advisor.id)
       return res.status(403).json({ error: "Accès refusé" });
 
-    // Save user message
-    const {
-      rows: [userMessage],
-    } = await pool.query(
-      `INSERT INTO sav_messages (session_id, role, content) VALUES ($1, 'user', $2) RETURNING *`,
-      [req.params.sessionId, content.trim()],
+    const userMessage = await messageModel.insert(
+      req.params.sessionId,
+      "user",
+      content.trim(),
     );
-
-    // Proxy to n8n
     const responseText = await sendMessage(
       req.params.sessionId,
       content.trim(),
     );
-
-    // Save assistant message
-    const {
-      rows: [assistantMessage],
-    } = await pool.query(
-      `INSERT INTO sav_messages (session_id, role, content) VALUES ($1, 'assistant', $2) RETURNING *`,
-      [req.params.sessionId, responseText],
+    const assistantMessage = await messageModel.insert(
+      req.params.sessionId,
+      "assistant",
+      responseText,
     );
 
     res.status(201).json({ userMessage, assistantMessage });
   } catch (err) {
     next(err);
   }
-});
+}
 
-module.exports = router;
+module.exports = { list, create, get, remove, getMessages, addMessage };
