@@ -80,8 +80,37 @@ async function updateDraft(req, res, next) {
 }
 
 /**
+ * PATCH /api/internal/sessions/:sessionId/status
+ * Update only the status field inside the draft JSONB.
+ * Body: { status: "ticket_created" | "cancelled" | ... }
+ */
+async function updateStatus(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const { status } = req.body || {};
+    if (!status || typeof status !== "string") {
+      return res
+        .status(400)
+        .json({ error: "Body must contain a status string" });
+    }
+    const { rows } = await pool.query(
+      `UPDATE sav_sessions
+       SET draft = jsonb_set(COALESCE(draft, '{}'), '{status}', $1::jsonb),
+           updated_at = NOW()
+       WHERE session_id = $2
+       RETURNING session_id, draft, turn`,
+      [JSON.stringify(status), sessionId],
+    );
+    if (!rows[0]) return res.status(404).json({ error: "Session not found" });
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * DELETE /api/internal/sessions/:sessionId
- * Remove the session row (mirrors Cleanup Session / Cancel Session).
+ * Remove the session row.
  */
 async function deleteSession(req, res, next) {
   try {
@@ -121,12 +150,11 @@ async function createTicketFromDraft(req, res, next) {
     }
 
     const issueDesc =
-      draft.issue?.description ||
-      draft.issue?.type ||
-      "Non spécifié";
+      draft.issue?.description || draft.issue?.type || "Non spécifié";
     const aiSummary =
-      [draft.issue?.type, draft.issue?.description].filter(Boolean).join(": ") ||
-      null;
+      [draft.issue?.type, draft.issue?.description]
+        .filter(Boolean)
+        .join(": ") || null;
 
     const { rows } = await pool.query(
       `INSERT INTO sav_tickets
@@ -161,4 +189,11 @@ async function createTicketFromDraft(req, res, next) {
   }
 }
 
-module.exports = { getSession, upsertSession, updateDraft, deleteSession, createTicketFromDraft };
+module.exports = {
+  getSession,
+  upsertSession,
+  updateDraft,
+  updateStatus,
+  deleteSession,
+  createTicketFromDraft,
+};

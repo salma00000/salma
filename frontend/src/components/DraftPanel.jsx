@@ -1,20 +1,24 @@
-import { useEffect, useState, useRef } from 'react';
-import { getConversation } from '../api/conversations';
+import { useEffect, useState, useRef } from "react";
+import { getConversation } from "../api/conversations";
 
-export default function DraftPanel({ sessionId }) {
+export default function DraftPanel({ sessionId, onStatusChange }) {
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(false);
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    if (!sessionId) { setDraft(null); return; }
+    if (!sessionId) {
+      setDraft(null);
+      return;
+    }
 
     const fetchDraft = () => {
       getConversation(sessionId)
         .then((session) => {
           setDraft(session.draft);
-          if (session.draft?.status === 'ticket_created') {
+          if (session.draft?.status === "ticket_created") {
             clearInterval(intervalRef.current);
+            onStatusChange?.("ticket_created");
           }
         })
         .catch(console.error);
@@ -25,7 +29,8 @@ export default function DraftPanel({ sessionId }) {
       .then((session) => {
         setDraft(session.draft);
         setLoading(false);
-        if (session.draft?.status !== 'ticket_created') {
+        onStatusChange?.(session.draft?.status ?? "draft");
+        if (session.draft?.status !== "ticket_created") {
           intervalRef.current = setInterval(fetchDraft, 3000);
         }
       })
@@ -38,7 +43,9 @@ export default function DraftPanel({ sessionId }) {
     return (
       <aside style={styles.panel}>
         <h2 style={styles.title}>Aperçu du dossier</h2>
-        <p style={styles.empty} className="pulse">Sélectionnez une conversation.</p>
+        <p style={styles.empty} className="pulse">
+          Sélectionnez une conversation.
+        </p>
       </aside>
     );
   }
@@ -47,20 +54,26 @@ export default function DraftPanel({ sessionId }) {
     return (
       <aside style={styles.panel}>
         <h2 style={styles.title}>Aperçu du dossier</h2>
-        <p style={styles.empty} className="pulse">Chargement…</p>
+        <p style={styles.empty} className="pulse">
+          Chargement…
+        </p>
       </aside>
     );
   }
 
   const isEmpty =
     !draft ||
-    (!draft.customer?.name && !draft.purchase?.invoice_id && !draft.issue?.type);
+    (!draft.customer?.name &&
+      !draft.purchase?.invoice_id &&
+      !draft.issue?.type);
 
   if (isEmpty) {
     return (
       <aside style={styles.panel}>
         <h2 style={styles.title}>Aperçu du dossier</h2>
-        <p style={styles.empty} className="pulse">En attente des informations…</p>
+        <p style={styles.empty} className="pulse">
+          En attente des informations…
+        </p>
       </aside>
     );
   }
@@ -71,7 +84,7 @@ export default function DraftPanel({ sessionId }) {
     <aside style={styles.panel}>
       <h2 style={styles.title}>Aperçu du dossier</h2>
 
-      {draft.status === 'ticket_created' && (
+      {draft.status === "ticket_created" && (
         <div style={styles.ticketBadge}>✅ Dossier créé</div>
       )}
 
@@ -96,16 +109,16 @@ export default function DraftPanel({ sessionId }) {
         <Field label="Date" value={draft.purchase?.date} />
         <Field label="Magasin" value={draft.purchase?.store} />
         {warrantyUnder !== null && warrantyUnder !== undefined && (
-          <div style={{ marginTop: '6px' }}>
+          <div style={{ marginTop: "6px" }}>
             <span
               style={{
                 ...styles.warrantyBadge,
-                background: warrantyUnder ? '#f0fdf4' : '#fefce8',
-                color: warrantyUnder ? '#15803d' : '#92400e',
-                borderColor: warrantyUnder ? '#86efac' : '#fcd34d',
+                background: warrantyUnder ? "#f0fdf4" : "#fefce8",
+                color: warrantyUnder ? "#15803d" : "#92400e",
+                borderColor: warrantyUnder ? "#86efac" : "#fcd34d",
               }}
             >
-              {warrantyUnder ? '✅ Sous garantie' : '⚠️ Hors garantie'}
+              {warrantyUnder ? "✅ Sous garantie" : "⚠️ Hors garantie"}
             </span>
           </div>
         )}
@@ -121,7 +134,9 @@ export default function DraftPanel({ sessionId }) {
       {draft.warnings?.length > 0 && (
         <Section title="Alertes">
           {draft.warnings.map((w, i) => (
-            <div key={i} style={styles.warningRow}>⚠️ {w}</div>
+            <div key={i} style={styles.warningRow}>
+              ⚠️ {w}
+            </div>
           ))}
         </Section>
       )}
@@ -131,7 +146,9 @@ export default function DraftPanel({ sessionId }) {
         <Section title="Champs manquants">
           <div style={styles.chipsRow}>
             {draft.missing_fields.map((f, i) => (
-              <span key={i} style={styles.chip}>{f}</span>
+              <span key={i} style={styles.chip}>
+                {f}
+              </span>
             ))}
           </div>
         </Section>
@@ -157,11 +174,11 @@ function Field({ label, value, mono, multiline }) {
       <span
         style={{
           ...sStyles.fieldValue,
-          fontFamily: mono ? 'var(--font-mono)' : 'var(--font-ui)',
-          fontSize: mono ? '12px' : '13px',
-          whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
-          overflow: multiline ? 'visible' : 'hidden',
-          textOverflow: multiline ? 'clip' : 'ellipsis',
+          fontFamily: mono ? "var(--font-mono)" : "var(--font-ui)",
+          fontSize: mono ? "12px" : "13px",
+          whiteSpace: multiline ? "pre-wrap" : "nowrap",
+          overflow: multiline ? "visible" : "hidden",
+          textOverflow: multiline ? "clip" : "ellipsis",
         }}
       >
         {value}
@@ -172,108 +189,108 @@ function Field({ label, value, mono, multiline }) {
 
 const styles = {
   panel: {
-    width: '320px',
+    width: "320px",
     flexShrink: 0,
-    background: 'var(--color-surface)',
-    borderLeft: '1px solid var(--color-border)',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100vh',
-    overflowY: 'auto',
-    padding: '20px 16px',
-    gap: '0',
+    background: "var(--color-surface)",
+    borderLeft: "1px solid var(--color-border)",
+    display: "flex",
+    flexDirection: "column",
+    height: "100vh",
+    overflowY: "auto",
+    padding: "20px 16px",
+    gap: "0",
   },
   title: {
-    fontSize: '13px',
+    fontSize: "13px",
     fontWeight: 700,
-    color: 'var(--color-text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    marginBottom: '16px',
+    color: "var(--color-text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    marginBottom: "16px",
   },
   empty: {
-    fontSize: '13px',
-    color: 'var(--color-text-muted)',
-    textAlign: 'center',
-    marginTop: '60px',
-    fontStyle: 'italic',
+    fontSize: "13px",
+    color: "var(--color-text-muted)",
+    textAlign: "center",
+    marginTop: "60px",
+    fontStyle: "italic",
   },
   ticketBadge: {
-    background: '#f0fdf4',
-    border: '1px solid #86efac',
-    color: '#15803d',
-    fontSize: '12px',
+    background: "#f0fdf4",
+    border: "1px solid #86efac",
+    color: "#15803d",
+    fontSize: "12px",
     fontWeight: 600,
-    padding: '6px 10px',
-    borderRadius: 'var(--radius)',
-    marginBottom: '16px',
-    textAlign: 'center',
+    padding: "6px 10px",
+    borderRadius: "var(--radius)",
+    marginBottom: "16px",
+    textAlign: "center",
   },
   warrantyBadge: {
-    display: 'inline-block',
-    fontSize: '11px',
+    display: "inline-block",
+    fontSize: "11px",
     fontWeight: 600,
-    padding: '3px 8px',
-    borderRadius: '20px',
-    border: '1px solid',
+    padding: "3px 8px",
+    borderRadius: "20px",
+    border: "1px solid",
   },
   warningRow: {
-    fontSize: '12px',
-    padding: '6px 8px',
-    background: 'var(--color-warning)',
-    border: '1px solid var(--color-warning-border)',
-    borderRadius: 'var(--radius)',
-    marginBottom: '4px',
-    color: '#92400e',
+    fontSize: "12px",
+    padding: "6px 8px",
+    background: "var(--color-warning)",
+    border: "1px solid var(--color-warning-border)",
+    borderRadius: "var(--radius)",
+    marginBottom: "4px",
+    color: "#92400e",
   },
   chipsRow: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '4px',
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "4px",
   },
   chip: {
-    fontSize: '11px',
-    padding: '3px 8px',
-    background: '#f4f4f5',
-    border: '1px solid var(--color-border)',
-    borderRadius: '20px',
-    color: 'var(--color-text-muted)',
-    fontFamily: 'var(--font-mono)',
+    fontSize: "11px",
+    padding: "3px 8px",
+    background: "#f4f4f5",
+    border: "1px solid var(--color-border)",
+    borderRadius: "20px",
+    color: "var(--color-text-muted)",
+    fontFamily: "var(--font-mono)",
   },
 };
 
 const sStyles = {
   section: {
-    marginBottom: '16px',
-    paddingBottom: '16px',
-    borderBottom: '1px solid var(--color-border)',
+    marginBottom: "16px",
+    paddingBottom: "16px",
+    borderBottom: "1px solid var(--color-border)",
   },
   sectionTitle: {
-    fontSize: '11px',
+    fontSize: "11px",
     fontWeight: 700,
-    color: 'var(--color-text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    marginBottom: '8px',
+    color: "var(--color-text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    marginBottom: "8px",
   },
   field: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: '8px',
-    marginBottom: '5px',
+    display: "flex",
+    alignItems: "baseline",
+    gap: "8px",
+    marginBottom: "5px",
   },
   fieldLabel: {
-    fontSize: '11px',
-    color: 'var(--color-text-muted)',
+    fontSize: "11px",
+    color: "var(--color-text-muted)",
     flexShrink: 0,
-    width: '72px',
-    textAlign: 'right',
+    width: "72px",
+    textAlign: "right",
   },
   fieldValue: {
     flex: 1,
-    fontSize: '13px',
-    color: 'var(--color-text)',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    fontSize: "13px",
+    color: "var(--color-text)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
 };
