@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -23,15 +25,17 @@
   --color-warning-border: #f59e0b;
   --color-error: #fef2f2;
   --color-error-border: #ef4444;
-  --font-ui: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
   --radius: 8px;
   --radius-lg: 12px;
-  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
-  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   font-family: var(--font-ui);
   background: var(--color-bg);
@@ -46,50 +50,85 @@ button {
   outline: none;
 }
 
-input, textarea {
+input,
+textarea {
   font-family: var(--font-ui);
   outline: none;
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 2px;
+}
 
 /* ── Markdown rendered in assistant bubbles ─────────────────── */
-.markdown-content p { margin-bottom: 0.5em; }
-.markdown-content p:last-child { margin-bottom: 0; }
-.markdown-content ul, .markdown-content ol { padding-left: 1.2em; margin-bottom: 0.5em; }
-.markdown-content li { margin-bottom: 0.25em; }
-.markdown-content strong { font-weight: 600; }
+.markdown-content p {
+  margin-bottom: 0.5em;
+}
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.2em;
+  margin-bottom: 0.5em;
+}
+.markdown-content li {
+  margin-bottom: 0.25em;
+}
+.markdown-content strong {
+  font-weight: 600;
+}
 .markdown-content code {
   font-family: var(--font-mono);
   font-size: 0.85em;
-  background: rgba(0,0,0,.06);
+  background: rgba(0, 0, 0, 0.06);
   padding: 0.1em 0.3em;
   border-radius: 3px;
 }
 .markdown-content pre {
-  background: rgba(0,0,0,.06);
+  background: rgba(0, 0, 0, 0.06);
   padding: 0.75em;
   border-radius: var(--radius);
   overflow-x: auto;
   margin-bottom: 0.5em;
 }
-.markdown-content pre code { background: none; padding: 0; }
-.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+}
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
   font-weight: 600;
   margin-bottom: 0.4em;
   margin-top: 0.6em;
 }
 .markdown-content h1:first-child,
 .markdown-content h2:first-child,
-.markdown-content h3:first-child { margin-top: 0; }
+.markdown-content h3:first-child {
+  margin-top: 0;
+}
 
 /* ── Typing indicator ───────────────────────────────────────── */
 @keyframes blink {
-  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1); }
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .typing-dot {
   width: 6px;
@@ -99,12 +138,121 @@ input, textarea {
   display: inline-block;
   animation: blink 1.4s ease-in-out infinite;
 }
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 /* ── Pulse animation for empty draft panel ──────────────────── */
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
-.pulse { animation: pulse 2s ease-in-out infinite; }
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── Mobile drawer overlay ──────────────────────────────────── */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 40;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: overlayFadeIn 0.2s ease forwards;
+}
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Ticket button pulse glow (mobile, when draft updated) ───── */
+@keyframes ticketRingPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.75);
+  }
+  60% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+.ticket-btn-pulse {
+  animation: ticketRingPulse 1.4s ease-out infinite;
+}
+
+/* ── Notification dot bounce-in ─────────────────────────────── */
+@keyframes dotBounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.notif-dot-enter {
+  animation: dotBounceIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── Desktop draft panel title shimmer on update ────────────── */
+@keyframes titleShimmer {
+  0% {
+    color: var(--color-text-muted);
+  }
+  30% {
+    color: var(--color-accent);
+  }
+  100% {
+    color: var(--color-text-muted);
+  }
+}
+.draft-title-flash {
+  animation: titleShimmer 1.6s ease-out forwards;
+}
+
+/* ── Toast notification (mobile) ────────────────────────────── */
+@keyframes toastSlideUp {
+  from {
+    transform: translate(-50%, 60px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes toastSlideDown {
+  from {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, 60px) scale(0.95);
+    opacity: 0;
+  }
+}
+.toast-enter {
+  animation: toastSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.toast-exit {
+  animation: toastSlideDown 0.25s ease-in forwards;
+}

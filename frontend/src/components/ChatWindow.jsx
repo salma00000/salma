@@ -8,6 +8,10 @@ export default function ChatWindow({
   sending,
   isArchived,
   onSend,
+  isMobile,
+  onOpenLeft,
+  onOpenRight,
+  draftUpdated,
 }) {
   const [input, setInput] = useState("");
   const bottomRef = useRef(null);
@@ -38,6 +42,13 @@ export default function ChatWindow({
   if (!sessionId) {
     return (
       <main style={styles.main}>
+        {isMobile && (
+          <MobileHeader
+            onOpenLeft={onOpenLeft}
+            onOpenRight={onOpenRight}
+            draftUpdated={draftUpdated}
+          />
+        )}
         <div style={styles.empty}>
           <p style={styles.emptyTitle}>SAV Assistant</p>
           <p style={styles.emptyHint}>
@@ -50,6 +61,13 @@ export default function ChatWindow({
 
   return (
     <main style={styles.main}>
+      {isMobile && (
+        <MobileHeader
+          onOpenLeft={onOpenLeft}
+          onOpenRight={onOpenRight}
+          draftUpdated={draftUpdated}
+        />
+      )}
       {isArchived && (
         <div style={styles.archivedBanner}>
           ✅ Ticket créé — Cette conversation est archivée
@@ -206,5 +224,95 @@ const styles = {
     color: "var(--color-text-muted)",
     maxWidth: "300px",
     textAlign: "center",
+  },
+};
+
+// ── Mobile header ─────────────────────────────────────────────
+function MobileHeader({ onOpenLeft, onOpenRight, draftUpdated }) {
+  return (
+    <div style={mStyles.header}>
+      <button
+        style={mStyles.iconBtn}
+        onClick={onOpenLeft}
+        aria-label="Conversations"
+      >
+        <span style={mStyles.menuIcon}>☰</span>
+      </button>
+
+      <span style={mStyles.title}>
+        <span style={mStyles.titleIcon}>⚙</span>
+        SAV Assistant
+      </span>
+
+      <button
+        style={mStyles.iconBtn}
+        onClick={onOpenRight}
+        aria-label="Aperçu du dossier"
+        className={draftUpdated ? "ticket-btn-pulse" : ""}
+      >
+        {draftUpdated && (
+          <span style={mStyles.notifDot} className="notif-dot-enter" />
+        )}
+        <span style={mStyles.ticketIcon}>📋</span>
+      </button>
+    </div>
+  );
+}
+
+const mStyles = {
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: "52px",
+    padding: "0 8px",
+    background: "var(--color-sidebar)",
+    borderBottom: "1px solid #27272a",
+    flexShrink: 0,
+  },
+  iconBtn: {
+    position: "relative",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    width: "44px",
+    height: "44px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "var(--radius)",
+  },
+  menuIcon: {
+    fontSize: "20px",
+    color: "var(--color-sidebar-text-bright)",
+    lineHeight: 1,
+  },
+  title: {
+    fontSize: "15px",
+    fontWeight: 700,
+    color: "var(--color-sidebar-text-bright)",
+    letterSpacing: "-0.2px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  titleIcon: {
+    fontSize: "15px",
+    color: "var(--color-accent)",
+  },
+  ticketIcon: {
+    fontSize: "20px",
+    lineHeight: 1,
+  },
+  notifDot: {
+    position: "absolute",
+    top: "8px",
+    right: "8px",
+    width: "9px",
+    height: "9px",
+    borderRadius: "50%",
+    background: "var(--color-accent)",
+    boxShadow: "0 0 6px rgba(245, 158, 11, 0.9)",
+    border: "1.5px solid var(--color-sidebar)",
   },
 };

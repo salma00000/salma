@@ -1,22 +1,41 @@
 import { useEffect, useState, useRef } from "react";
 import { getConversation } from "../api/conversations";
 
-export default function DraftPanel({ sessionId, onStatusChange }) {
+export default function DraftPanel({
+  sessionId,
+  onStatusChange,
+  onDraftUpdate,
+  isMobile,
+  isOpen,
+  onClose,
+  draftUpdated,
+}) {
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(false);
   const intervalRef = useRef(null);
+  const prevDraftRef = useRef(null);
 
   useEffect(() => {
     if (!sessionId) {
       setDraft(null);
+      prevDraftRef.current = null;
       return;
     }
 
     const fetchDraft = () => {
       getConversation(sessionId)
         .then((session) => {
-          setDraft(session.draft);
-          if (session.draft?.status === "ticket_created") {
+          const newDraft = session.draft;
+          // Detect changes after initial load
+          if (
+            prevDraftRef.current !== null &&
+            JSON.stringify(prevDraftRef.current) !== JSON.stringify(newDraft)
+          ) {
+            onDraftUpdate?.();
+          }
+          prevDraftRef.current = newDraft;
+          setDraft(newDraft);
+          if (newDraft?.status === "ticket_created") {
             clearInterval(intervalRef.current);
             onStatusChange?.("ticket_created");
           }
@@ -28,6 +47,7 @@ export default function DraftPanel({ sessionId, onStatusChange }) {
     getConversation(sessionId)
       .then((session) => {
         setDraft(session.draft);
+        prevDraftRef.current = session.draft; // seed reference — no update fired
         setLoading(false);
         onStatusChange?.(session.draft?.status ?? "draft");
         if (session.draft?.status !== "ticket_created") {
@@ -39,27 +59,47 @@ export default function DraftPanel({ sessionId, onStatusChange }) {
     return () => clearInterval(intervalRef.current);
   }, [sessionId]);
 
-  if (!sessionId) {
-    return (
-      <aside style={styles.panel}>
-        <h2 style={styles.title}>Aperçu du dossier</h2>
-        <p style={styles.empty} className="pulse">
-          Sélectionnez une conversation.
-        </p>
-      </aside>
-    );
-  }
+  // ── Panel style: fixed right drawer on mobile ─────────────────
+  const panelStyle = {
+    ...styles.panel,
+    ...(isMobile
+      ? {
+          position: "fixed",
+          right: 0,
+          top: 0,
+          height: "100vh",
+          zIndex: 50,
+          width: "min(320px, 92vw)",
+          transform: isOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
+          boxShadow: isOpen ? "-6px 0 40px rgba(0,0,0,0.2)" : "none",
+        }
+      : {}),
+  };
 
-  if (loading) {
-    return (
-      <aside style={styles.panel}>
-        <h2 style={styles.title}>Aperçu du dossier</h2>
-        <p style={styles.empty} className="pulse">
-          Chargement…
-        </p>
-      </aside>
-    );
-  }
+  const titleStyle = {
+    ...styles.title,
+    ...(draftUpdated && !isMobile ? {} : {}),
+  };
+
+  const emptyContent = (label) => (
+    <aside style={panelStyle}>
+      <div style={styles.titleRow}>
+        <h2 style={titleStyle}>Aperçu du dossier</h2>
+        {isMobile && (
+          <button style={styles.closeBtn} onClick={onClose} aria-label="Fermer">
+            ✕
+          </button>
+        )}
+      </div>
+      <p style={styles.empty} className="pulse">
+        {label}
+      </p>
+    </aside>
+  );
+
+  if (!sessionId) return emptyContent("Sélectionnez une conversation.");
+  if (loading) return emptyContent("Chargement…");
 
   const isEmpty =
     !draft ||
@@ -67,22 +107,28 @@ export default function DraftPanel({ sessionId, onStatusChange }) {
       !draft.purchase?.invoice_id &&
       !draft.issue?.type);
 
-  if (isEmpty) {
-    return (
-      <aside style={styles.panel}>
-        <h2 style={styles.title}>Aperçu du dossier</h2>
-        <p style={styles.empty} className="pulse">
-          En attente des informations…
-        </p>
-      </aside>
-    );
-  }
+  if (isEmpty) return emptyContent("En attente des informations…");
 
   const warrantyUnder = draft.purchase?.under_warranty;
 
   return (
-    <aside style={styles.panel}>
-      <h2 style={styles.title}>Aperçu du dossier</h2>
+    <aside style={panelStyle}>
+      <div style={styles.titleRow}>
+        <h2
+          style={titleStyle}
+          className={draftUpdated && !isMobile ? "draft-title-flash" : ""}
+        >
+          Aperçu du dossier
+          {draftUpdated && !isMobile && (
+            <span style={styles.desktopDot} className="notif-dot-enter" />
+          )}
+        </h2>
+        {isMobile && (
+          <button style={styles.closeBtn} onClick={onClose} aria-label="Fermer">
+            ✕
+          </button>
+        )}
+      </div>
 
       {draft.status === "ticket_created" && (
         <div style={styles.ticketBadge}>✅ Dossier créé</div>
@@ -200,13 +246,41 @@ const styles = {
     padding: "20px 16px",
     gap: "0",
   },
+  titleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "16px",
+    minHeight: "24px",
+  },
   title: {
     fontSize: "13px",
     fontWeight: 700,
     color: "var(--color-text-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
-    marginBottom: "16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  desktopDot: {
+    display: "inline-block",
+    width: "7px",
+    height: "7px",
+    borderRadius: "50%",
+    background: "var(--color-accent)",
+    boxShadow: "0 0 6px rgba(245, 158, 11, 0.8)",
+    flexShrink: 0,
+  },
+  closeBtn: {
+    background: "transparent",
+    color: "var(--color-text-muted)",
+    fontSize: "15px",
+    padding: "4px 8px",
+    borderRadius: "var(--radius)",
+    border: "1px solid var(--color-border)",
+    cursor: "pointer",
+    lineHeight: 1,
   },
   empty: {
     fontSize: "13px",
