@@ -10,8 +10,11 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.4,
-      "position": [3664, 768],
-      "id": "b6882082-7641-4b8f-9734-f83f12736507",
+      "position": [
+        2832,
+        1488
+      ],
+      "id": "d79a176d-9a3a-4b84-80a3-b13ba5cc9d8f",
       "name": "When chat message received",
       "webhookId": "c88c52a0-fa1e-4bec-9b40-11d2a06585bf",
       "credentials": {
@@ -27,30 +30,39 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3840, 768],
-      "id": "b30ba09a-be7a-452e-b788-a8c9638c2af5",
+      "position": [
+        3008,
+        1488
+      ],
+      "id": "dc123795-891d-4117-86e6-ea685b18ba31",
       "name": "Load Session State"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Tu es un assistant d'extraction pour un service SAV d'un magasin d'électroménager.\n\nÀ partir du message d'un conseiller, extrait les informations disponibles et retourne UNIQUEMENT un objet JSON valide (pas de texte avant ou après, pas de balises markdown, pas de ```), selon ce schéma exact :\n\n{\n  \"intent\": \"new_sav | validate | cancel | other\",\n  \"invoice_id\": \"string ou null\",\n  \"customer_name\": \"string ou null\",\n  \"product_type\": \"string ou null\",\n  \"product_brand\": \"string ou null\",\n  \"issue_type\": \"fuite | panne_electrique | casse | bruit | ne_demarre_pas | autre | null\",\n  \"issue_description\": \"string ou null\",\n  \"context\": \"string ou null\",\n  \"confidence\": 0.0,\n  \"needs_review\": false\n}\n\nRÈGLES DE DÉTECTION D'INTENTION :\n\n- \"validate\" : le conseiller valide explicitement le dossier en cours. Exemples :\n  * \"oui\", \"ok\", \"valide\", \"valider\", \"je valide\", \"créer le dossier\", \"créer\", \"confirme\", \"c'est bon\"\n  IMPORTANT : intent=\"validate\" UNIQUEMENT si le draft contient déjà des informations (pas un nouveau dossier vide)\n\n- \"cancel\" : le conseiller annule/refuse/recommence. Exemples :\n  * \"non\", \"annuler\", \"annule\", \"recommencer\", \"stop\", \"abandon\"\n\n- \"new_sav\" : le conseiller décrit une nouvelle demande ou complète des informations. C'est le cas par défaut.\n  * \"facture 1234, fuite lave-linge\" → new_sav\n  * \"fuite lave-linge\" → new_sav\n  * \"ça fuit par le bas\" → new_sav (complétion du dossier en cours)\n  * \"marque Bosch\" → new_sav\n\n- \"other\" : incompréhensible, question hors sujet, etc.\n\nRÈGLES D'EXTRACTION (inchangées) :\n- Si un champ n'est pas mentionné, mets null. Ne devine JAMAIS.\n- \"facture 1234\" → invoice_id = \"1234\"\n- \"lave-linge\" → product_type = \"lave-linge\"\n- \"fuite\" → issue_type = \"fuite\"\n- needs_review = true si confidence < 0.7\n\nDraft actuel (ne pas écraser, juste compléter) :\n{{ $json.draft }}\n\nMessage du conseiller à analyser :\n\"{{ $json.message }}\"\n\nRéponds UNIQUEMENT avec le JSON, rien d'autre.",
+        "text": "=Tu es un assistant d'extraction pour un service SAV d'un magasin d'électroménager.\n\nÀ partir du message d'un conseiller, extrait les informations disponibles et retourne UNIQUEMENT un objet JSON valide (pas de texte avant ou après, pas de balises markdown, pas de ```), selon ce schéma exact :\n\n{\n  \"intent\": \"new_sav | validate | cancel | other\",\n  \"invoice_id\": \"string ou null\",\n  \"customer_name\": \"string ou null\",\n  \"product_type\": \"string ou null\",\n  \"product_brand\": \"string ou null\",\n  \"issue_type\": \"fuite | panne_electrique | casse | bruit | ne_demarre_pas | autre | null\",\n  \"issue_description\": \"string ou null\",\n  \"context\": \"string ou null\",\n  \"confidence\": 0.0,\n  \"needs_review\": false\n}\n\nRÈGLES DE DÉTECTION D'INTENTION :\n\n- \"validate\" : le conseiller valide explicitement le dossier en cours. Exemples :\n  * \"oui\", \"ok\", \"valide\", \"valider\", \"je valide\", \"créer le dossier\", \"créer\", \"confirme\", \"c'est bon\"\n  IMPORTANT : intent=\"validate\" UNIQUEMENT si le draft contient déjà des informations (pas un nouveau dossier vide)\n\n- \"cancel\" : le conseiller annule/refuse/recommence. Exemples :\n  * \"non\", \"annuler\", \"annule\", \"recommencer\", \"stop\", \"abandon\"\n\n- \"new_sav\" : le conseiller décrit une nouvelle demande ou complète des informations. C'est le cas par défaut.\n  * \"facture 1234, fuite lave-linge\" → new_sav\n  * \"fuite lave-linge\" → new_sav\n  * \"ça fuit par le bas\" → new_sav (complétion du dossier en cours)\n  * \"marque Bosch\" → new_sav\n\n- \"other\" : incompréhensible, question hors sujet, etc.\n\nRÈGLES D'EXTRACTION (inchangées) :\n- Si un champ n'est pas mentionné, mets null. Ne devine JAMAIS.\n- \"facture 1234\" → invoice_id = \"1234\"\n- \"lave-linge\" → product_type = \"lave-linge\"\n- \"fuite\" → issue_type = \"fuite\"\n- needs_review = true si confidence < 0.7\n\nDraft actuel (ne pas écraser, juste compléter) :\n{{ $json.session.draft }}\n\nMessage du conseiller à analyser :\n\"{{ $json.message }}\"\n\nRéponds UNIQUEMENT avec le JSON, rien d'autre.",
         "batching": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [4624, 768],
-      "id": "2d175886-ee14-4c96-b053-e9a601cc5501",
+      "position": [
+        3792,
+        1488
+      ],
+      "id": "9b78473f-2b0a-4245-a4ec-0b0c6377c7bf",
       "name": "LLM Extract"
     },
     {
       "parameters": {
-        "jsCode": "// --- 1. Parser la sortie du LLM Extract ---\nconst llmOutput = $input.first().json;\n\nlet extracted = null;\n\n// Cas 1 : le Basic LLM Chain retourne directement un objet JSON (quand format:json activé côté Ollama)\nif (llmOutput && typeof llmOutput === 'object' && llmOutput.invoice_id !== undefined) {\n  extracted = llmOutput;\n}\n// Cas 2 : le Basic LLM Chain retourne { text: \"...\" }\nelse if (llmOutput && typeof llmOutput.text === 'string') {\n  try {\n    let raw = llmOutput.text.trim();\n    raw = raw.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '').replace(/^```\\s*/i, '');\n    const firstBrace = raw.indexOf('{');\n    const lastBrace = raw.lastIndexOf('}');\n    if (firstBrace !== -1 && lastBrace !== -1) {\n      raw = raw.substring(firstBrace, lastBrace + 1);\n    }\n    extracted = JSON.parse(raw);\n  } catch (err) {\n    extracted = { confidence: 0, needs_review: true, _parse_error: err.message };\n  }\n}\n\n// Fallback si rien n'est exploitable\nif (!extracted) {\n  extracted = { confidence: 0, needs_review: true };\n}\n\n// --- 2. Récupérer le draft depuis PG Load Session et le userMessage ---\nconst pgSession = $('PG New Session').first().json;\nconst loadState = $('Load Session State').first().json;\n\nconst sessionId = pgSession.session_id;\nconst turn = pgSession.turn;\nconst draft = JSON.parse(JSON.stringify(pgSession.draft));\n\n// Garantir la structure minimale du draft (si Postgres retourne un truc partiel)\ndraft.customer = draft.customer || {};\ndraft.product = draft.product || {};\ndraft.purchase = draft.purchase || {};\ndraft.issue = draft.issue || {};\ndraft.history = draft.history || [];\ndraft.missing_fields = draft.missing_fields || [];\ndraft.warnings = draft.warnings || [];\ndraft.status = draft.status || \"draft\";\n\n// --- 3. Merge non-destructif ---\nif (extracted.invoice_id && !draft.purchase.invoice_id) {\n  draft.purchase.invoice_id = String(extracted.invoice_id);\n}\nif (extracted.product_type && !draft.product.category) {\n  draft.product.category = extracted.product_type;\n}\nif (extracted.product_brand && !draft.product.brand) {\n  draft.product.brand = extracted.product_brand;\n}\nif (extracted.issue_type && !draft.issue.type) {\n  draft.issue.type = extracted.issue_type;\n}\nif (extracted.issue_description && !draft.issue.description) {\n  draft.issue.description = extracted.issue_description;\n}\nif (extracted.customer_name && !draft.customer.name) {\n  draft.customer.name = extracted.customer_name;\n}\nif (extracted.context && !draft.issue.context) {\n  draft.issue.context = extracted.context;\n}\n\n// --- 4. Sortir le draft fusionné ---\nreturn [{\n  json: {\n    sessionId,\n    userMessage: loadState.userMessage,\n    draft,\n    extraction: extracted,\n    intent: extracted?.intent || 'new_sav',\n    turn\n  }\n}];"
+        "jsCode": "// --- 1. Parser la sortie du LLM Extract ---\nconst llmOutput = $input.first().json;\n\nlet extracted = null;\n\n// Cas 1 : le Basic LLM Chain retourne directement un objet JSON (quand format:json activé côté Ollama)\nif (llmOutput && typeof llmOutput === 'object' && llmOutput.invoice_id !== undefined) {\n  extracted = llmOutput;\n}\n// Cas 2 : le Basic LLM Chain retourne { text: \"...\" }\nelse if (llmOutput && typeof llmOutput.text === 'string') {\n  try {\n    let raw = llmOutput.text.trim();\n    raw = raw.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '').replace(/^```\\s*/i, '');\n    const firstBrace = raw.indexOf('{');\n    const lastBrace = raw.lastIndexOf('}');\n    if (firstBrace !== -1 && lastBrace !== -1) {\n      raw = raw.substring(firstBrace, lastBrace + 1);\n    }\n    extracted = JSON.parse(raw);\n  } catch (err) {\n    extracted = { confidence: 0, needs_review: true, _parse_error: err.message };\n  }\n}\n\n// Fallback si rien n'est exploitable\nif (!extracted) {\n  extracted = { confidence: 0, needs_review: true };\n}\n\n// --- 2. Récupérer le draft depuis PG Load Session et le userMessage ---\nconst pgSession = $('Merge Session').first().json.session;\nconst loadState = $('Load Session State').first().json;\n\nconst sessionId = pgSession.session_id;\nconst turn = pgSession.turn;\nconst draft = JSON.parse(JSON.stringify(pgSession.draft));\n\n// Garantir la structure minimale du draft (si Postgres retourne un truc partiel)\ndraft.customer = draft.customer || {};\ndraft.product = draft.product || {};\ndraft.purchase = draft.purchase || {};\ndraft.issue = draft.issue || {};\ndraft.history = draft.history || [];\ndraft.missing_fields = draft.missing_fields || [];\ndraft.warnings = draft.warnings || [];\ndraft.status = draft.status || \"draft\";\n\n// --- 3. Merge non-destructif ---\nif (extracted.invoice_id && !draft.purchase.invoice_id) {\n  draft.purchase.invoice_id = String(extracted.invoice_id);\n}\nif (extracted.product_type && !draft.product.category) {\n  draft.product.category = extracted.product_type;\n}\nif (extracted.product_brand && !draft.product.brand) {\n  draft.product.brand = extracted.product_brand;\n}\nif (extracted.issue_type && !draft.issue.type) {\n  draft.issue.type = extracted.issue_type;\n}\nif (extracted.issue_description && !draft.issue.description) {\n  draft.issue.description = extracted.issue_description;\n}\nif (extracted.customer_name && !draft.customer.name) {\n  draft.customer.name = extracted.customer_name;\n}\nif (extracted.context && !draft.issue.context) {\n  draft.issue.context = extracted.context;\n}\n\n// --- 4. Sortir le draft fusionné ---\nreturn [{\n  json: {\n    sessionId,\n    userMessage: loadState.userMessage,\n    draft,\n    extraction: extracted,\n    intent: extracted?.intent || 'new_sav',\n    turn\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4912, 768],
-      "id": "1836ee32-9dc5-4636-90e4-f0824433f340",
+      "position": [
+        4080,
+        1488
+      ],
+      "id": "c24c6442-aedf-4a54-aa9c-1ef3115d598d",
       "name": "Merge Draft"
     },
     {
@@ -80,8 +92,11 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [5664, 768],
-      "id": "5f1924ae-0af4-4024-a7df-72b55a60a7e8",
+      "position": [
+        4832,
+        1488
+      ],
+      "id": "9e38a821-7311-4961-99d5-33d5b4b1bfbc",
       "name": "Has Invoice?"
     },
     {
@@ -90,8 +105,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [5872, 672],
-      "id": "251c90f3-cc13-443e-bc35-659c521834fb",
+      "position": [
+        5040,
+        1392
+      ],
+      "id": "d3f0d611-c1c7-4966-b18c-d9f29c13cfb7",
       "name": "Get Invoice"
     },
     {
@@ -100,8 +118,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [6080, 672],
-      "id": "53f68b46-9e5d-405a-88aa-9f5b175a4f4f",
+      "position": [
+        5248,
+        1392
+      ],
+      "id": "670fbbdb-73d4-4883-8ad8-95d47a9d7505",
       "name": "Get Customer"
     },
     {
@@ -110,8 +131,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [6288, 672],
-      "id": "e32f2a75-813a-44bf-a980-e2d0829b710a",
+      "position": [
+        5456,
+        1392
+      ],
+      "id": "a6a1449c-c114-455d-a222-51d6ef976525",
       "name": "Get Product"
     },
     {
@@ -120,8 +144,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [6496, 672],
-      "id": "6c6c20be-07bb-4601-8dad-b91a50d96609",
+      "position": [
+        5664,
+        1392
+      ],
+      "id": "9b5f2580-17c2-4465-ae91-526df67ab24c",
       "name": "Get SAV History"
     },
     {
@@ -130,8 +157,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [6752, 784],
-      "id": "32c763fb-5da1-4bd2-80b5-6a3beb35695f",
+      "position": [
+        5920,
+        1504
+      ],
+      "id": "be111bd0-4029-463b-ab7f-ea52172192e6",
       "name": "Validate & Detect Missing"
     },
     {
@@ -161,8 +191,11 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [7344, 784],
-      "id": "eb6cde4b-82e1-4b56-bbf6-2447f8a6e532",
+      "position": [
+        6512,
+        1504
+      ],
+      "id": "2fbd72a1-03a3-46cd-9f47-00e5ab4bf480",
       "name": "Is Complete?"
     },
     {
@@ -173,8 +206,11 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [7552, 624],
-      "id": "891f1de9-df5a-4b25-bae9-b635cdc157c0",
+      "position": [
+        6720,
+        1344
+      ],
+      "id": "ee9802be-4118-4ee8-b632-22c5fd5e0c61",
       "name": "LLM Recap"
     },
     {
@@ -185,8 +221,11 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [7584, 944],
-      "id": "39ea0015-c8a8-4dc1-9e34-c331dcb130bf",
+      "position": [
+        6752,
+        1664
+      ],
+      "id": "a4bf6d39-9dc8-48e0-8ed3-a0cb4d0efccf",
       "name": "LLM Question"
     },
     {
@@ -195,18 +234,24 @@
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
-      "position": [8512, 1040],
-      "id": "99d03956-e8e9-4906-a2f2-a7ad74eef179",
+      "position": [
+        7680,
+        1760
+      ],
+      "id": "5862b354-e2c9-497d-872c-7ef1787de86a",
       "name": "Merge Response"
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $json.sessionId }}/draft",
+        "url": "=https://sav-api.sparkedge-solutions.com/api/internal/sessions/{{ $json.sessionId }}/draft",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
           ]
         },
         "sendBody": true,
@@ -216,8 +261,11 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [5088, 768],
-      "id": "661a2e34-0c68-4d55-9313-97736b413d34",
+      "position": [
+        4256,
+        1488
+      ],
+      "id": "e2695a19-2d03-44f0-acce-c50d199f1703",
       "name": "PG Save Session"
     },
     {
@@ -226,18 +274,24 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [5248, 768],
-      "id": "f5f775d5-9239-4ae8-9ee8-83ccac7b4c37",
+      "position": [
+        4416,
+        1488
+      ],
+      "id": "c53abe4d-09d7-4340-abd3-573b7967230e",
       "name": "Passthrough"
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $json.sessionId }}/draft",
+        "url": "=https://sav-api.sparkedge-solutions.com/api/internal/sessions/{{ $json.sessionId }}/draft",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
           ]
         },
         "sendBody": true,
@@ -247,8 +301,11 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [6928, 784],
-      "id": "f989b846-51e9-4de0-b86f-4740ee6b3d67",
+      "position": [
+        6096,
+        1504
+      ],
+      "id": "23bb9c5a-8542-499a-a13a-2d280fd392c1",
       "name": "PG Save Final"
     },
     {
@@ -257,8 +314,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [7136, 784],
-      "id": "d113b495-b39e-443b-9cd5-1c839ea3e6a3",
+      "position": [
+        6304,
+        1504
+      ],
+      "id": "b130f91d-feeb-4443-bce1-8eee8071f00c",
       "name": "Passthrough Final"
     },
     {
@@ -268,9 +328,12 @@
         "width": 304
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [3856, 496],
+      "position": [
+        3024,
+        1216
+      ],
       "typeVersion": 1,
-      "id": "6c0c812d-dd18-4cdd-96ea-d2d2bd91eb7b",
+      "id": "fd2a73a2-fc32-4227-bd9a-67540f7c882f",
       "name": "Sticky Note"
     },
     {
@@ -281,8 +344,11 @@
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [4544, 1136],
-      "id": "a6f05b01-f1d6-4b88-89a1-a27286c8f1fa",
+      "position": [
+        3712,
+        1856
+      ],
+      "id": "6181673f-f7b2-498e-8692-be824772d8f8",
       "name": "test"
     },
     {
@@ -371,8 +437,11 @@
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
-      "position": [5376, 1216],
-      "id": "1bd25d90-6945-446c-9ba1-7f5ff904f0fa",
+      "position": [
+        4544,
+        1936
+      ],
+      "id": "23afb5d8-646b-4e51-a147-62eb70bb1b45",
       "name": "Route Intent"
     },
     {
@@ -381,8 +450,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [5952, 944],
-      "id": "41f293c2-a741-4653-ad0b-cdd2d438c57a",
+      "position": [
+        5120,
+        1664
+      ],
+      "id": "e6d13f7e-7102-43b3-af83-a197f7186d39",
       "name": "Check Ready"
     },
     {
@@ -412,18 +484,24 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [6112, 1104],
-      "id": "3af8699e-783b-4f2c-9f3a-99456cfa2aec",
+      "position": [
+        5280,
+        1824
+      ],
+      "id": "a0f0bf70-8ad9-4398-bb74-c61098507221",
       "name": "Is Ready?"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://host.docker.internal:3002/api/internal/tickets",
+        "url": "=https://sav-api.sparkedge-solutions.com/api/internal/tickets",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
           ]
         },
         "sendBody": true,
@@ -433,26 +511,35 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [6512, 1088],
-      "id": "eef8db93-f727-47af-8d88-e4f2d7ecb967",
+      "position": [
+        5680,
+        1808
+      ],
+      "id": "17f43fe8-eecb-4197-863c-58ebfca79711",
       "name": "Create SAV Ticket"
     },
     {
       "parameters": {
         "method": "DELETE",
-        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $('Check Ready').first().json.sessionId }}",
+        "url": "=https://sav-api.sparkedge-solutions.com/api/internal/sessions/{{ $('Check Ready').first().json.sessionId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
           ]
         },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [6688, 1088],
-      "id": "136d95d1-b4f0-4b05-9f1e-ffb34eb72922",
+      "position": [
+        5856,
+        1808
+      ],
+      "id": "766ecf9f-df00-4f81-84db-cab76d936f1c",
       "name": "Cleanup Session"
     },
     {
@@ -461,8 +548,11 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [6896, 1088],
-      "id": "010c0276-fb14-4502-836c-e888ce45ba2a",
+      "position": [
+        6064,
+        1808
+      ],
+      "id": "483ed8d7-bde6-4699-9ea3-482244add481",
       "name": "Prepare Confirmation"
     },
     {
@@ -473,8 +563,11 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [7104, 1088],
-      "id": "3bacc585-b299-43a8-9f5c-6c24b541f07a",
+      "position": [
+        6272,
+        1808
+      ],
+      "id": "be8ffda7-08a4-4075-8a89-2d7d64d51416",
       "name": "LLM Confirmation"
     },
     {
@@ -485,26 +578,35 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [6496, 1264],
-      "id": "ccbb3b4b-d77a-4ba1-a9fc-7be793eca27c",
+      "position": [
+        5664,
+        1984
+      ],
+      "id": "b37a8d1d-3c1e-465c-b2a7-515e1ac4dcce",
       "name": "LLM Incomplete"
     },
     {
       "parameters": {
         "method": "DELETE",
-        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $json.sessionId }}",
+        "url": "=https://sav-api.sparkedge-solutions.com/api/internal/sessions/{{ $json.sessionId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
           ]
         },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [6144, 1568],
-      "id": "a2755d0a-d174-48e4-895f-71d72b310e8f",
+      "position": [
+        5312,
+        2288
+      ],
+      "id": "7c6b103d-ab6f-4417-b8b2-40a5c72ae02f",
       "name": "Cancel Session"
     },
     {
@@ -523,8 +625,11 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [6752, 1600],
-      "id": "c1f5ee5a-5123-4696-9f57-1354203e046b",
+      "position": [
+        5920,
+        2320
+      ],
+      "id": "784d1916-6da6-42de-8a97-5984ec9c4436",
       "name": "Cancel Message"
     },
     {
@@ -543,49 +648,48 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [5584, 1424],
-      "id": "89a42339-e48a-405a-b607-930be1cec4e9",
+      "position": [
+        4752,
+        2144
+      ],
+      "id": "c67e7c73-98b7-4e9a-98e6-f4aebe845813",
       "name": "Fallback Message"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $('Load Session State').first().json.sessionId }}",
+        "url": "=https://sav-api.sparkedge-solutions.com/api/internal/sessions/{{ $('Load Session State').first().json.sessionId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
           ]
         },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [4256, 976],
-      "id": "02a9e1e9-a48a-4861-ab84-e47a76995199",
+      "position": [
+        3424,
+        1696
+      ],
+      "id": "53141f4f-8870-4faa-8d9d-dd338cd2e5b8",
       "name": "PG New Session"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT * FROM sav_sessions WHERE session_id = '{{ $json.sessionId }}';",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [4064, 768],
-      "id": "8e02e3e0-9eb6-4f5e-88e3-737167d61f3e",
-      "name": "PG Load Session",
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "jsCode": "const session = $('PG Load Session')?.first()?.json ?? $('PG New Session')?.first()?.json;\n\nreturn [{\n  json: {\n    draft: session?.draft,\n    message: $('Load Session State').first().json.userMessage\n  }\n}];"
+        "jsCode": "const getNodeData = (nodeName) => {\n  try {\n    return $(nodeName).first().json;\n  } catch (e) {\n    return null;\n  }\n};\n\nconst loadSession = getNodeData('PG Load Session');\nconst newSession = getNodeData('PG New Session');\n\nconst isEmpty = (obj) => !obj || Object.keys(obj).length === 0;\n\nconst session = !isEmpty(loadSession) ? loadSession : newSession;\n\nreturn [{\n  json: {\n    session,\n    message: $('Load Session State').first().json.userMessage\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4464, 768],
-      "id": "f25c0f83-4d41-4b12-b4a5-7d04abc9d340",
+      "position": [
+        3632,
+        1488
+      ],
+      "id": "20d91547-5eee-43d9-bbe9-1dabc63b6d22",
       "name": "Merge Session"
     },
     {
@@ -615,36 +719,25 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [4240, 768],
-      "id": "5ad9591f-2d9b-4430-83b2-e86ad44fe58e",
+      "position": [
+        3408,
+        1488
+      ],
+      "id": "80a94c03-c85f-4d36-956d-e4626dad5cec",
       "name": "If Session Exist"
     },
     {
       "parameters": {
-        "model": "groq/compound",
+        "model": "allam-2-7b",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [4736, 944],
-      "id": "c7982fd4-7af1-451d-9437-9f7c7cd363a2",
-      "name": "Groq Chat Model",
-      "credentials": {
-        "groqApi": {
-          "id": "FD06G4ETl36RqXCf",
-          "name": "Groq account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": "groq/compound",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
-      "typeVersion": 1,
-      "position": [6448, 1424],
-      "id": "a065ce2b-cf85-4885-9ee4-c0196252cf10",
+      "position": [
+        5616,
+        2144
+      ],
+      "id": "392330fe-c86b-42b5-811a-778646ccb320",
       "name": "Groq Chat Model1",
       "credentials": {
         "groqApi": {
@@ -655,13 +748,16 @@
     },
     {
       "parameters": {
-        "model": "groq/compound",
+        "model": "allam-2-7b",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [7136, 1264],
-      "id": "62b49ebf-2436-4ab8-a3d2-67dce64aaad3",
+      "position": [
+        6304,
+        1984
+      ],
+      "id": "9ef1b2a3-8029-4ae1-811e-f9b860c9f6c4",
       "name": "Groq Chat Model2",
       "credentials": {
         "groqApi": {
@@ -672,13 +768,16 @@
     },
     {
       "parameters": {
-        "model": "groq/compound",
+        "model": "allam-2-7b",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [7648, 1104],
-      "id": "eb5d34e8-d418-4e97-94b1-5b3f1970eab8",
+      "position": [
+        6816,
+        1824
+      ],
+      "id": "95d4c0d2-e798-4343-bf26-93c76a3d241e",
       "name": "Groq Chat Model3",
       "credentials": {
         "groqApi": {
@@ -689,13 +788,16 @@
     },
     {
       "parameters": {
-        "model": "groq/compound",
+        "model": "allam-2-7b",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [7632, 784],
-      "id": "708daa99-3dce-4a2e-8716-9cf6e8bebd52",
+      "position": [
+        6800,
+        1504
+      ],
+      "id": "83dcbaa9-dbbd-49a1-9749-f993eef2abe1",
       "name": "Groq Chat Model4",
       "credentials": {
         "groqApi": {
@@ -706,13 +808,13 @@
     },
     {
       "parameters": {
-        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $json.sessionId }}",
+        "url": "=https://sav-api.sparkedge-solutions.com/api/internal/sessions/{{ $json.sessionId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Internal-Key",
-              "value": "={{ $env.N8N_INTERNAL_KEY }}"
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
             }
           ]
         },
@@ -720,9 +822,31 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [4000, 944],
-      "id": "fcd43f4e-a977-44fe-b12c-7005cf817534",
-      "name": "HTTP Request"
+      "position": [
+        3216,
+        1488
+      ],
+      "id": "3f57ccc3-bd3f-4157-84d7-2064b9c66a12",
+      "name": "PG Load Session"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        3904,
+        1664
+      ],
+      "id": "8cd2d962-4395-4335-957a-e225ec2aa32d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0m35yEc1rToWHaFW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -743,11 +867,6 @@
         [
           {
             "node": "PG Load Session",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "HTTP Request",
             "type": "main",
             "index": 0
           }
@@ -1093,17 +1212,6 @@
         ]
       ]
     },
-    "PG Load Session": {
-      "main": [
-        [
-          {
-            "node": "If Session Exist",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Merge Session": {
       "main": [
         [
@@ -1128,17 +1236,6 @@
           {
             "node": "PG New Session",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Groq Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "LLM Extract",
-            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -1188,7 +1285,7 @@
         ]
       ]
     },
-    "HTTP Request": {
+    "PG Load Session": {
       "main": [
         [
           {
@@ -1198,15 +1295,29 @@
           }
         ]
       ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Extract",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": false
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "d25e2ae0-409a-4578-8d1d-70dc7d248e81",
+  "versionId": "747ca797-8aca-41bb-b555-35b529380f96",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "2cdb80ccd0f3adccc0fd1b099720c32100339940c294d7fba2832560b1e9633c"

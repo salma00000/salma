@@ -1,4 +1,4 @@
-const axios = require('axios');
+const axios = require("axios");
 
 const n8nClient = axios.create({
   baseURL: process.env.N8N_WEBHOOK_URL,
@@ -6,11 +6,12 @@ const n8nClient = axios.create({
     username: process.env.N8N_BASIC_AUTH_USER,
     password: process.env.N8N_BASIC_AUTH_PASSWORD,
   },
-  timeout: 60000,
+  // 180 s — Groq compound model + multiple LLM hops can be slow
+  timeout: 180000,
 });
 
 async function sendMessage(sessionId, content) {
-  const { data } = await n8nClient.post('', {
+  const { data } = await n8nClient.post("", {
     chatInput: content,
     sessionId,
   });

@@ -90,6 +90,10 @@ services:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-change-this-32-char-key-now-!}
       N8N_INTERNAL_KEY: ${N8N_INTERNAL_KEY:-change_this_internal_key_min32chars}
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      # Allow n8n to see the real client IP when behind Caddy
+      N8N_TRUST_PROXY: "true"
+      # Webhook response timeout in ms — must exceed the longest possible LLM chain
+      N8N_WEBHOOK_RESPONSE_TIMEOUT: "240000"
       DB_TYPE: sqlite
       WEBHOOK_URL: http://localhost:5678
       N8N_PROTOCOL: http
