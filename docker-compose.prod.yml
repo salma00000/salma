@@ -59,7 +59,7 @@ services:
       # Required on Linux; Docker Desktop (Mac/Win) provides it automatically
       - "host.docker.internal:host-gateway"
     ports:
-      - "127.0.0.1:3002:3002"
+      - "3002:3002"
     depends_on:
       postgres:
         condition: service_healthy
