@@ -10,10 +10,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.4,
-      "position": [
-        3664,
-        768
-      ],
+      "position": [3664, 768],
       "id": "b6882082-7641-4b8f-9734-f83f12736507",
       "name": "When chat message received",
       "webhookId": "c88c52a0-fa1e-4bec-9b40-11d2a06585bf",
@@ -30,10 +27,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        3840,
-        768
-      ],
+      "position": [3840, 768],
       "id": "b30ba09a-be7a-452e-b788-a8c9638c2af5",
       "name": "Load Session State"
     },
@@ -45,10 +39,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [
-        4624,
-        768
-      ],
+      "position": [4624, 768],
       "id": "2d175886-ee14-4c96-b053-e9a601cc5501",
       "name": "LLM Extract"
     },
@@ -58,10 +49,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        4912,
-        768
-      ],
+      "position": [4912, 768],
       "id": "1836ee32-9dc5-4636-90e4-f0824433f340",
       "name": "Merge Draft"
     },
@@ -92,10 +80,7 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [
-        5664,
-        768
-      ],
+      "position": [5664, 768],
       "id": "5f1924ae-0af4-4024-a7df-72b55a60a7e8",
       "name": "Has Invoice?"
     },
@@ -105,10 +90,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        5872,
-        672
-      ],
+      "position": [5872, 672],
       "id": "251c90f3-cc13-443e-bc35-659c521834fb",
       "name": "Get Invoice"
     },
@@ -118,10 +100,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        6080,
-        672
-      ],
+      "position": [6080, 672],
       "id": "53f68b46-9e5d-405a-88aa-9f5b175a4f4f",
       "name": "Get Customer"
     },
@@ -131,10 +110,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        6288,
-        672
-      ],
+      "position": [6288, 672],
       "id": "e32f2a75-813a-44bf-a980-e2d0829b710a",
       "name": "Get Product"
     },
@@ -144,10 +120,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        6496,
-        672
-      ],
+      "position": [6496, 672],
       "id": "6c6c20be-07bb-4601-8dad-b91a50d96609",
       "name": "Get SAV History"
     },
@@ -157,10 +130,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        6752,
-        784
-      ],
+      "position": [6752, 784],
       "id": "32c763fb-5da1-4bd2-80b5-6a3beb35695f",
       "name": "Validate & Detect Missing"
     },
@@ -191,10 +161,7 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [
-        7344,
-        784
-      ],
+      "position": [7344, 784],
       "id": "eb6cde4b-82e1-4b56-bbf6-2447f8a6e532",
       "name": "Is Complete?"
     },
@@ -206,10 +173,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [
-        7552,
-        624
-      ],
+      "position": [7552, 624],
       "id": "891f1de9-df5a-4b25-bae9-b635cdc157c0",
       "name": "LLM Recap"
     },
@@ -221,10 +185,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [
-        7584,
-        944
-      ],
+      "position": [7584, 944],
       "id": "39ea0015-c8a8-4dc1-9e34-c331dcb130bf",
       "name": "LLM Question"
     },
@@ -234,27 +195,28 @@
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
-      "position": [
-        8512,
-        1040
-      ],
+      "position": [8512, 1040],
       "id": "99d03956-e8e9-4906-a2f2-a7ad74eef179",
       "name": "Merge Response"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE sav_sessions\nSET draft = $1::jsonb,\n    updated_at = NOW()\nWHERE session_id = $2;",
-        "options": {
-          "queryReplacement": "=={{ JSON.stringify($json.draft) }},{{ $json.sessionId }}"
-        }
+        "method": "PATCH",
+        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $json.sessionId }}/draft",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ draft: $json.draft }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        5088,
-        768
-      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [5088, 768],
       "id": "661a2e34-0c68-4d55-9313-97736b413d34",
       "name": "PG Save Session"
     },
@@ -264,27 +226,28 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        5248,
-        768
-      ],
+      "position": [5248, 768],
       "id": "f5f775d5-9239-4ae8-9ee8-83ccac7b4c37",
       "name": "Passthrough"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE sav_sessions\nSET draft = $1::jsonb, updated_at = NOW()\nWHERE session_id = $2;",
-        "options": {
-          "queryReplacement": "=={{ JSON.stringify($json.draft) }},{{ $json.sessionId }}"
-        }
+        "method": "PATCH",
+        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $json.sessionId }}/draft",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ draft: $json.draft }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        6928,
-        784
-      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [6928, 784],
       "id": "f989b846-51e9-4de0-b86f-4740ee6b3d67",
       "name": "PG Save Final"
     },
@@ -294,10 +257,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        7136,
-        784
-      ],
+      "position": [7136, 784],
       "id": "d113b495-b39e-443b-9cd5-1c839ea3e6a3",
       "name": "Passthrough Final"
     },
@@ -308,10 +268,7 @@
         "width": 304
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        3856,
-        496
-      ],
+      "position": [3856, 496],
       "typeVersion": 1,
       "id": "6c0c812d-dd18-4cdd-96ea-d2d2bd91eb7b",
       "name": "Sticky Note"
@@ -324,10 +281,7 @@
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [
-        4544,
-        1136
-      ],
+      "position": [4544, 1136],
       "id": "a6f05b01-f1d6-4b88-89a1-a27286c8f1fa",
       "name": "test"
     },
@@ -417,10 +371,7 @@
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
-      "position": [
-        5376,
-        1216
-      ],
+      "position": [5376, 1216],
       "id": "1bd25d90-6945-446c-9ba1-7f5ff904f0fa",
       "name": "Route Intent"
     },
@@ -430,10 +381,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        5952,
-        944
-      ],
+      "position": [5952, 944],
       "id": "41f293c2-a741-4653-ad0b-cdd2d438c57a",
       "name": "Check Ready"
     },
@@ -464,44 +412,46 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [
-        6112,
-        1104
-      ],
+      "position": [6112, 1104],
       "id": "3af8699e-783b-4f2c-9f3a-99456cfa2aec",
       "name": "Is Ready?"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO sav_tickets (\n  ticket_id, session_id, customer_id, customer_name,\n  product_sku, product_label,\n  invoice_id, purchase_date, store,\n  issue_type, issue_description,\n  under_warranty, warnings, full_draft, status\n)\nVALUES (\n  $1, $2, $3, $4,\n  $5, $6,\n  $7, $8, $9,\n  $10, $11,\n  $12, $13::jsonb, $14::jsonb, 'open'\n)\nRETURNING ticket_id, created_at;",
-        "options": {
-          "queryReplacement": "=={{ $json.ticketId }},{{ $json.sessionId }},{{ $json.draft.customer.id }},{{ $json.draft.customer.name }},{{ $json.draft.product.sku }},{{ $json.draft.product.label }},{{ $json.draft.purchase.invoice_id }},{{ $json.draft.purchase.date }},{{ $json.draft.purchase.store }},{{ $json.draft.issue.type }},{{ $json.draft.issue.description }},{{ $json.draft.purchase.under_warranty }},{{ JSON.stringify($json.draft.warnings || []) }},{{ JSON.stringify($json.draft) }}"
-        }
+        "method": "POST",
+        "url": "=http://host.docker.internal:3002/api/internal/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ticketId: $json.ticketId, sessionId: $json.sessionId, draft: $json.draft }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        6512,
-        1088
-      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [6512, 1088],
       "id": "eef8db93-f727-47af-8d88-e4f2d7ecb967",
       "name": "Create SAV Ticket"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "DELETE FROM sav_sessions WHERE session_id = $1;",
-        "options": {
-          "queryReplacement": "=={{ $('Check Ready').first().json.sessionId }}"
-        }
+        "method": "DELETE",
+        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $('Check Ready').first().json.sessionId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+          ]
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        6688,
-        1088
-      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [6688, 1088],
       "id": "136d95d1-b4f0-4b05-9f1e-ffb34eb72922",
       "name": "Cleanup Session"
     },
@@ -511,10 +461,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        6896,
-        1088
-      ],
+      "position": [6896, 1088],
       "id": "010c0276-fb14-4502-836c-e888ce45ba2a",
       "name": "Prepare Confirmation"
     },
@@ -526,10 +473,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [
-        7104,
-        1088
-      ],
+      "position": [7104, 1088],
       "id": "3bacc585-b299-43a8-9f5c-6c24b541f07a",
       "name": "LLM Confirmation"
     },
@@ -541,27 +485,25 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [
-        6496,
-        1264
-      ],
+      "position": [6496, 1264],
       "id": "ccbb3b4b-d77a-4ba1-a9fc-7be793eca27c",
       "name": "LLM Incomplete"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "DELETE FROM sav_sessions WHERE session_id = $1;",
-        "options": {
-          "queryReplacement": "=={{ $json.sessionId }}"
-        }
+        "method": "DELETE",
+        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $json.sessionId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+          ]
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        6144,
-        1568
-      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [6144, 1568],
       "id": "a2755d0a-d174-48e4-895f-71d72b310e8f",
       "name": "Cancel Session"
     },
@@ -581,10 +523,7 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        6752,
-        1600
-      ],
+      "position": [6752, 1600],
       "id": "c1f5ee5a-5123-4696-9f57-1354203e046b",
       "name": "Cancel Message"
     },
@@ -604,25 +543,25 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        5584,
-        1424
-      ],
+      "position": [5584, 1424],
       "id": "89a42339-e48a-405a-b607-930be1cec4e9",
       "name": "Fallback Message"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO sav_sessions (session_id, draft, turn, updated_at)\nVALUES ('{{ $json.sessionId }}', '{\"customer\":{},\"product\":{},\"purchase\":{},\"issue\":{},\"history\":[],\"missing_fields\":[],\"warnings\":[],\"status\":\"draft\"}'::jsonb, 1, NOW())\nON CONFLICT (session_id) DO UPDATE SET turn = sav_sessions.turn + 1, updated_at = NOW()\nRETURNING session_id, draft, turn;",
+        "method": "POST",
+        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $('Load Session State').first().json.sessionId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Internal-Key", "value": "={{ $env.N8N_INTERNAL_KEY }}" }
+          ]
+        },
         "options": {}
       },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        4256,
-        976
-      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [4256, 976],
       "id": "02a9e1e9-a48a-4861-ab84-e47a76995199",
       "name": "PG New Session"
     },
@@ -634,10 +573,7 @@
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [
-        4064,
-        768
-      ],
+      "position": [4064, 768],
       "id": "8e02e3e0-9eb6-4f5e-88e3-737167d61f3e",
       "name": "PG Load Session",
       "alwaysOutputData": true
@@ -648,10 +584,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        4464,
-        768
-      ],
+      "position": [4464, 768],
       "id": "f25c0f83-4d41-4b12-b4a5-7d04abc9d340",
       "name": "Merge Session"
     },
@@ -682,10 +615,7 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [
-        4240,
-        768
-      ],
+      "position": [4240, 768],
       "id": "5ad9591f-2d9b-4430-83b2-e86ad44fe58e",
       "name": "If Session Exist"
     },
@@ -696,10 +626,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [
-        4736,
-        944
-      ],
+      "position": [4736, 944],
       "id": "c7982fd4-7af1-451d-9437-9f7c7cd363a2",
       "name": "Groq Chat Model",
       "credentials": {
@@ -716,10 +643,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [
-        6448,
-        1424
-      ],
+      "position": [6448, 1424],
       "id": "a065ce2b-cf85-4885-9ee4-c0196252cf10",
       "name": "Groq Chat Model1",
       "credentials": {
@@ -736,10 +660,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [
-        7136,
-        1264
-      ],
+      "position": [7136, 1264],
       "id": "62b49ebf-2436-4ab8-a3d2-67dce64aaad3",
       "name": "Groq Chat Model2",
       "credentials": {
@@ -756,10 +677,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [
-        7648,
-        1104
-      ],
+      "position": [7648, 1104],
       "id": "eb5d34e8-d418-4e97-94b1-5b3f1970eab8",
       "name": "Groq Chat Model3",
       "credentials": {
@@ -776,10 +694,7 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [
-        7632,
-        784
-      ],
+      "position": [7632, 784],
       "id": "708daa99-3dce-4a2e-8716-9cf6e8bebd52",
       "name": "Groq Chat Model4",
       "credentials": {
@@ -791,7 +706,7 @@
     },
     {
       "parameters": {
-        "url": "=http://sav-backend:3002/api/internal/sessions/{{ $json.sessionId }}",
+        "url": "=http://host.docker.internal:3002/api/internal/sessions/{{ $json.sessionId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -805,10 +720,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [
-        4000,
-        944
-      ],
+      "position": [4000, 944],
       "id": "fcd43f4e-a977-44fe-b12c-7005cf817534",
       "name": "HTTP Request"
     }

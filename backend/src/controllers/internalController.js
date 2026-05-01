@@ -61,7 +61,9 @@ async function updateDraft(req, res, next) {
     const { sessionId } = req.params;
     const { draft } = req.body;
     if (!draft || typeof draft !== "object") {
-      return res.status(400).json({ error: "Body must contain a draft object" });
+      return res
+        .status(400)
+        .json({ error: "Body must contain a draft object" });
     }
     const { rows } = await pool.query(
       `UPDATE sav_sessions
@@ -93,4 +95,70 @@ async function deleteSession(req, res, next) {
   }
 }
 
-module.exports = { getSession, upsertSession, updateDraft, deleteSession };
+/**
+ * POST /api/internal/tickets
+ * Create a SAV ticket from draft data and mark the session as ticket_created.
+ * Body: { ticketId, sessionId, draft }
+ */
+async function createTicketFromDraft(req, res, next) {
+  try {
+    const { ticketId, sessionId, draft } = req.body || {};
+    if (!ticketId || !sessionId || !draft) {
+      return res
+        .status(400)
+        .json({ error: "ticketId, sessionId and draft are required" });
+    }
+
+    // Optional: resolve the integer facture PK from numero_facture
+    let factureId = null;
+    const invoiceRef = draft.purchase?.invoice_id;
+    if (invoiceRef) {
+      const { rows: fRows } = await pool.query(
+        "SELECT id FROM factures WHERE numero_facture = $1 LIMIT 1",
+        [String(invoiceRef)],
+      );
+      if (fRows.length) factureId = fRows[0].id;
+    }
+
+    const issueDesc =
+      draft.issue?.description ||
+      draft.issue?.type ||
+      "Non spécifié";
+    const aiSummary =
+      [draft.issue?.type, draft.issue?.description].filter(Boolean).join(": ") ||
+      null;
+
+    const { rows } = await pool.query(
+      `INSERT INTO sav_tickets
+         (ticket_id, facture_id, numero_facture, client_nom, client_email,
+          order_date, issue_description, status, priority, ai_summary)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'open', 'medium', $8)
+       RETURNING ticket_id, created_at`,
+      [
+        ticketId,
+        factureId,
+        invoiceRef ? String(invoiceRef) : null,
+        draft.customer?.name || null,
+        draft.customer?.email || null,
+        draft.purchase?.date || null,
+        issueDesc,
+        aiSummary,
+      ],
+    );
+
+    // Mark session as ticket_created so the frontend polling detects it
+    await pool.query(
+      `UPDATE sav_sessions
+       SET draft = jsonb_set(COALESCE(draft, '{}'), '{status}', '"ticket_created"'),
+           updated_at = NOW()
+       WHERE session_id = $1`,
+      [sessionId],
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getSession, upsertSession, updateDraft, deleteSession, createTicketFromDraft };
