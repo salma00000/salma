@@ -1,18 +1,11 @@
 const axios = require("axios");
 
 const N8N_URL = process.env.N8N_WEBHOOK_URL;
-const N8N_USER = process.env.N8N_BASIC_AUTH_USER;
-const N8N_PASS = process.env.N8N_BASIC_AUTH_PASSWORD;
 
 console.log("[n8nService] Initialising — N8N_WEBHOOK_URL:", N8N_URL);
-console.log("[n8nService] Auth user:", N8N_USER);
 
 const n8nClient = axios.create({
   baseURL: N8N_URL,
-  auth: {
-    username: N8N_USER,
-    password: N8N_PASS,
-  },
   // 180 s — Groq compound model + multiple LLM hops can be slow
   timeout: 180000,
 });
