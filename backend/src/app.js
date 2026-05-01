@@ -26,9 +26,11 @@ const conversationRoutes = require("./routes/conversations");
 const facturesRoutes = require("./routes/factures");
 const articlesRoutes = require("./routes/articles");
 const savRoutes = require("./routes/sav");
+const swaggerRouter = require("./swagger/router");
 
 const app = express();
 
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
   cors({
@@ -63,6 +65,7 @@ app.use("/api/conversations", requireAuth, conversationRoutes);
 app.use("/api/factures", facturesRoutes);
 app.use("/api/articles", articlesRoutes);
 app.use("/api/sav", savRoutes);
+app.use("/api-docs", swaggerRouter);
 
 app.use(errorHandler);
 
