@@ -6,6 +6,7 @@ const REQUIRED_ENV = [
   "N8N_WEBHOOK_URL",
   "N8N_BASIC_AUTH_USER",
   "N8N_BASIC_AUTH_PASSWORD",
+  "N8N_INTERNAL_KEY",
 ];
 for (const key of REQUIRED_ENV) {
   if (!process.env[key])
@@ -26,6 +27,7 @@ const conversationRoutes = require("./routes/conversations");
 const facturesRoutes = require("./routes/factures");
 const articlesRoutes = require("./routes/articles");
 const savRoutes = require("./routes/sav");
+const internalRoutes = require("./routes/internal");
 const swaggerRouter = require("./swagger/router");
 
 const app = express();
@@ -65,6 +67,7 @@ app.use("/api/conversations", requireAuth, conversationRoutes);
 app.use("/api/factures", facturesRoutes);
 app.use("/api/articles", articlesRoutes);
 app.use("/api/sav", savRoutes);
+app.use("/api/internal", internalRoutes);
 app.use("/api-docs", swaggerRouter);
 
 app.use(errorHandler);
