@@ -31,24 +31,6 @@ const swaggerRouter = require("./swagger/router");
 const app = express();
 
 app.set("trust proxy", 1);
-
-// Swagger UI needs unpkg CDN — apply a relaxed CSP only for /api-docs
-app.use(
-  "/api-docs",
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://unpkg.com", "'unsafe-inline'"],
-        styleSrc: ["'self'", "https://unpkg.com", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https://unpkg.com"],
-        connectSrc: ["'self'"],
-        workerSrc: ["blob:"],
-      },
-    },
-  }),
-);
-
 app.use(helmet());
 app.use(
   cors({

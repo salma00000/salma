@@ -3,31 +3,24 @@
 const router = require("express").Router();
 const spec = require("./openapi");
 
+const SWAGGER_CSP =
+  "default-src 'self'; " +
+  "script-src 'self' https://unpkg.com 'unsafe-inline'; " +
+  "style-src 'self' https://unpkg.com 'unsafe-inline'; " +
+  "img-src 'self' data: https://unpkg.com; " +
+  "connect-src 'self'; " +
+  "worker-src blob:";
+
 // Serve the raw OpenAPI JSON spec
 router.get("/openapi.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.json(spec);
 });
 
-// Swagger UI initialiser — served as a plain JS file so no inline-script CSP issue
-router.get("/init.js", (_req, res) => {
-  res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-  res.send(`
-window.addEventListener('load', function () {
-  SwaggerUIBundle({
-    url: window.location.pathname.replace(/\\/init\\.js$/, '') + '/openapi.json',
-    dom_id: '#swagger-ui',
-    presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
-    layout: 'StandaloneLayout',
-    deepLinking: true,
-    persistAuthorization: true,
-  });
-});
-`);
-});
-
-// Serve a self-contained Swagger UI page (CDN assets, init script served locally)
+// Serve a self-contained Swagger UI page.
+// res.setHeader() here overrides the CSP that helmet() already set upstream.
 router.get("/", (_req, res) => {
+  res.setHeader("Content-Security-Policy", SWAGGER_CSP);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -36,13 +29,22 @@ router.get("/", (_req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SAV Assistant \u2013 API Docs</title>
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
-  <style>body { margin: 0; } #swagger-ui .topbar { background-color: #1b1b2f; }</style>
+  <style>body{margin:0}#swagger-ui .topbar{background-color:#1b1b2f}</style>
 </head>
 <body>
   <div id="swagger-ui"></div>
   <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
   <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
-  <script src="init.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: '/api-docs/openapi.json',
+      dom_id: '#swagger-ui',
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+      layout: 'StandaloneLayout',
+      deepLinking: true,
+      persistAuthorization: true,
+    });
+  </script>
 </body>
 </html>`);
 });
