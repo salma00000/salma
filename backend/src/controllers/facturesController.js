@@ -63,4 +63,16 @@ async function getById(req, res, next) {
   }
 }
 
-module.exports = { list, search, getById };
+async function getByNumero(req, res, next) {
+  try {
+    const { numero } = req.params;
+    const facture = await factureModel.findByNumero(numero);
+    if (!facture)
+      return res.status(404).json({ error: `Aucune facture avec le numéro ${numero}.` });
+    res.json(facture);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, search, getById, getByNumero };

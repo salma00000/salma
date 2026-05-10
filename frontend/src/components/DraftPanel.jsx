@@ -269,7 +269,7 @@ const styles = {
     height: "7px",
     borderRadius: "50%",
     background: "var(--color-accent)",
-    boxShadow: "0 0 6px rgba(245, 158, 11, 0.8)",
+    boxShadow: "0 0 6px rgba(45, 212, 191, 0.8)",
     flexShrink: 0,
   },
   closeBtn: {

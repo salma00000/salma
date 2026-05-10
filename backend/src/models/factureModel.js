@@ -2,12 +2,19 @@
 
 const pool = require("../db/pool");
 
+const FACTURE_COLUMNS = `
+  id, numero_facture, client_nom, client_email, client_phone, client_loyalty_tier, customer_id,
+  date_creation, date_echeance,
+  montant_ht, montant_tva, montant_total, statut,
+  store, notes
+`;
+
 async function findAll({ page = 1, limit = 20 } = {}) {
   const safeLimit = Math.min(100, Math.max(1, limit));
   const offset = (Math.max(1, page) - 1) * safeLimit;
 
   const { rows } = await pool.query(
-    `SELECT id, numero_facture, client_nom, client_email, date_creation, montant_total, statut
+    `SELECT ${FACTURE_COLUMNS}
      FROM factures ORDER BY date_creation DESC LIMIT $1 OFFSET $2`,
     [safeLimit, offset],
   );
@@ -68,12 +75,18 @@ async function search({ q, client, article, date, numero } = {}) {
 
 async function findById(id) {
   const { rows } = await pool.query(
-    `SELECT id, numero_facture, client_nom, client_email, date_creation, date_echeance,
-            montant_ht, montant_tva, montant_total, statut, notes
-     FROM factures WHERE id = $1 LIMIT 1`,
+    `SELECT ${FACTURE_COLUMNS} FROM factures WHERE id = $1 LIMIT 1`,
     [id],
   );
   return rows[0] || null;
 }
 
-module.exports = { findAll, search, findById };
+async function findByNumero(numero) {
+  const { rows } = await pool.query(
+    `SELECT ${FACTURE_COLUMNS} FROM factures WHERE numero_facture = $1 LIMIT 1`,
+    [numero],
+  );
+  return rows[0] || null;
+}
+
+module.exports = { findAll, search, findById, findByNumero };

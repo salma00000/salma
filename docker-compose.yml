@@ -41,7 +41,7 @@ services:
     environment:
       PORT: 3002
       DATABASE_URL: postgresql://${POSTGRES_USER:-sav_user}:${POSTGRES_PASSWORD:-sav_password}@postgres:5432/${POSTGRES_DB:-sav_db}
-      N8N_WEBHOOK_URL: https://n8n.sparkedge-solutions.com/webhook/c88c52a0-fa1e-4bec-9b40-11d2a06585bf/chat
+      N8N_WEBHOOK_URL: http://sav-n8n:5678/webhook/c88c52a0-fa1e-4bec-9b40-11d2a06585bf/chat
       N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
       N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD:-changeme}
       N8N_INTERNAL_KEY: ${N8N_INTERNAL_KEY:-change_this_internal_key_min32chars}
@@ -52,7 +52,7 @@ services:
       - /app/node_modules
     ports:
       - "3002:3002"
-      - "127.0.0.1:3000:3002" # backward compatibility (factures API was on 3000)
+      - "0.0.0.0:3000:3002" # backward compatibility (factures API was on 3000)
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,7 +72,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "127.0.0.1:5173:5173"
+      - "0.0.0.0:5173:5173"
     depends_on:
       - backend
 
@@ -110,33 +110,33 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
     ports:
-      - "127.0.0.1:5678:5678"
+      - "0.0.0.0:5678:5678"
     depends_on:
       postgres:
         condition: service_healthy
-      ollama:
-        condition: service_started
+      # ollama:
+      #   condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
   # ─────────────────────────────────────────────────────────────
   # Ollama — LLM local CPU
   # ─────────────────────────────────────────────────────────────
-  ollama:
-    image: ollama/ollama
-    container_name: sav-ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_NO_GPU=1
-    ports:
-      - "127.0.0.1:11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
+  # ollama:
+  #   image: ollama/ollama
+  #   container_name: sav-ollama
+  #   restart: unless-stopped
+  #   environment:
+  #     - OLLAMA_NO_GPU=1
+  #   ports:
+  #     - "127.0.0.1:11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
 
 volumes:
   postgres_data:
     driver: local
   n8n_data:
     driver: local
-  ollama_data:
-    driver: local
+  # ollama_data:
+  #   driver: local

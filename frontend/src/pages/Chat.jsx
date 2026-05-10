@@ -241,7 +241,7 @@ const styles = {
     fontSize: "14px",
     fontWeight: 600,
     cursor: "pointer",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(245,158,11,0.25)",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(45,212,191,0.25)",
     whiteSpace: "nowrap",
   },
   toastIcon: { fontSize: "16px" },

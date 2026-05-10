@@ -75,10 +75,20 @@ const spec = {
         type: "object",
         properties: {
           id: { type: "integer" },
-          numero: { type: "string" },
-          client: { type: "string" },
-          date: { type: "string", format: "date" },
-          montant_total: { type: "number" },
+          numero_facture: { type: "string", example: "FAC-1024" },
+          client_nom: { type: "string", example: "Sophie Renard" },
+          client_email: { type: "string", format: "email" },
+          client_phone: { type: "string", example: "+32 2 555 01 01", nullable: true },
+          client_loyalty_tier: { type: "string", enum: ["bronze", "silver", "gold"], nullable: true },
+          customer_id: { type: "string", example: "C-987", nullable: true },
+          date_creation: { type: "string", format: "date-time" },
+          date_echeance: { type: "string", format: "date", nullable: true },
+          montant_ht: { type: "number", example: 649.00 },
+          montant_tva: { type: "number", example: 129.80 },
+          montant_total: { type: "number", example: 778.80 },
+          statut: { type: "string", enum: ["En attente", "Envoyée", "Payée", "Annulée", "En retard"] },
+          store: { type: "string", example: "Magasin Bruxelles Centre", nullable: true },
+          notes: { type: "string", nullable: true },
         },
       },
       FactureList: {
@@ -104,11 +114,15 @@ const spec = {
         properties: {
           id: { type: "integer" },
           facture_id: { type: "integer" },
-          reference: { type: "string" },
-          designation: { type: "string" },
-          quantite: { type: "number" },
-          prix_unitaire: { type: "number" },
-          montant: { type: "number" },
+          nom_article: { type: "string", example: "Lave-linge Bosch WAG28400" },
+          description: { type: "string", nullable: true },
+          quantite: { type: "number", example: 1 },
+          prix_unitaire: { type: "number", example: 549.00 },
+          sous_total: { type: "number", example: 549.00 },
+          product_sku: { type: "string", example: "LL-BOSCH-WAG28400", nullable: true },
+          product_brand: { type: "string", example: "Bosch", nullable: true },
+          product_category: { type: "string", example: "Gros électroménager", nullable: true },
+          warranty_months: { type: "integer", example: 24, nullable: true },
         },
       },
       SavTicket: {
@@ -434,6 +448,30 @@ const spec = {
         },
       },
     },
+    "/factures/by-numero/{numero}": {
+      get: {
+        tags: ["Factures"],
+        summary: "Get invoice by numero",
+        description: "Lookup a full invoice record by its numero_facture (e.g. FAC-1024). Used by n8n to populate the SAV draft.",
+        parameters: [
+          {
+            name: "numero",
+            in: "path",
+            required: true,
+            schema: { type: "string", example: "FAC-1024" },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Invoice with all SAV fields",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/Facture" } },
+            },
+          },
+          404: { description: "Invoice not found" },
+        },
+      },
+    },
     "/factures/{id}": {
       get: {
         tags: ["Factures"],
@@ -448,7 +486,7 @@ const spec = {
         ],
         responses: {
           200: {
-            description: "Invoice",
+            description: "Invoice with all SAV fields",
             content: {
               "application/json": { schema: { $ref: "#/components/schemas/Facture" } },
             },

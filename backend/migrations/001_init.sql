@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS factures (
     numero_facture   VARCHAR(30)   NOT NULL UNIQUE,
     client_nom       VARCHAR(150)  NOT NULL,
     client_email     VARCHAR(200),
+    client_phone     VARCHAR(30),
+    client_loyalty_tier VARCHAR(20) CHECK (client_loyalty_tier IN ('bronze', 'silver', 'gold')),
+    customer_id      VARCHAR(30),
     date_creation    TIMESTAMP     NOT NULL DEFAULT NOW(),
     date_echeance    DATE,
     montant_ht       NUMERIC(12,2) NOT NULL DEFAULT 0.00,
@@ -42,6 +45,7 @@ CREATE TABLE IF NOT EXISTS factures (
     montant_total    NUMERIC(12,2) GENERATED ALWAYS AS (ROUND(montant_ht * (1 + taux_tva / 100), 2)) STORED,
     statut           VARCHAR(30)   NOT NULL DEFAULT 'En attente'
                          CHECK (statut IN ('En attente', 'Envoyée', 'Payée', 'Annulée', 'En retard')),
+    store            VARCHAR(150),
     notes            TEXT,
     created_at       TIMESTAMP     NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMP     NOT NULL DEFAULT NOW()
@@ -66,6 +70,10 @@ CREATE TABLE IF NOT EXISTS articles (
     quantite         NUMERIC(10,3) NOT NULL DEFAULT 1,
     prix_unitaire    NUMERIC(12,2) NOT NULL,
     sous_total       NUMERIC(14,2) GENERATED ALWAYS AS (ROUND(quantite * prix_unitaire, 2)) STORED,
+    product_sku      VARCHAR(100),
+    product_brand    VARCHAR(100),
+    product_category VARCHAR(100),
+    warranty_months  INTEGER,
     created_at       TIMESTAMP     NOT NULL DEFAULT NOW()
 );
 

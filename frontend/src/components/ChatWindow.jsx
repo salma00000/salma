@@ -312,7 +312,7 @@ const mStyles = {
     height: "9px",
     borderRadius: "50%",
     background: "var(--color-accent)",
-    boxShadow: "0 0 6px rgba(245, 158, 11, 0.9)",
+    boxShadow: "0 0 6px rgba(45, 212, 191, 0.9)",
     border: "1.5px solid var(--color-sidebar)",
   },
 };

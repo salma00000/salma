@@ -9,11 +9,11 @@
 :root {
   --color-sidebar: #18181b;
   --color-sidebar-hover: #27272a;
-  --color-sidebar-active: rgba(245, 158, 11, 0.12);
+  --color-sidebar-active: rgba(45, 212, 191, 0.12);
   --color-sidebar-text: #a1a1aa;
   --color-sidebar-text-bright: #f4f4f5;
-  --color-accent: #f59e0b;
-  --color-accent-hover: #d97706;
+  --color-accent: #2dd4bf;
+  --color-accent-hover: #0fb8a4;
   --color-bg: #f8f7f4;
   --color-surface: #ffffff;
   --color-border: #e4e4e7;
@@ -22,7 +22,7 @@
   --color-user-bubble: #18181b;
   --color-assistant-bubble: #ffffff;
   --color-warning: #fef3c7;
-  --color-warning-border: #f59e0b;
+  --color-warning-border: #f59e0b; /* keep amber for warnings — semantic */
   --color-error: #fef2f2;
   --color-error-border: #ef4444;
   --font-ui: "Inter", system-ui, sans-serif;
@@ -181,13 +181,13 @@ textarea {
 /* ── Ticket button pulse glow (mobile, when draft updated) ───── */
 @keyframes ticketRingPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.75);
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.75);
   }
   60% {
-    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    box-shadow: 0 0 0 10px rgba(45, 212, 191, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
   }
 }
 .ticket-btn-pulse {
