@@ -26,15 +26,35 @@ export default function DraftPanel({
       getConversation(sessionId)
         .then((session) => {
           const newDraft = session.draft;
-          // Detect changes after initial load
+
+          // ✅ FIX 1: Don't replace a populated draft with null/empty
+          const newIsEmpty =
+            !newDraft ||
+            (!newDraft.customer?.name &&
+              !newDraft.purchase?.invoice_id &&
+              !newDraft.issue?.type);
+          const prevIsPopulated =
+            prevDraftRef.current &&
+            (prevDraftRef.current.customer?.name ||
+              prevDraftRef.current.purchase?.invoice_id ||
+              prevDraftRef.current.issue?.type);
+
+          if (newIsEmpty && prevIsPopulated) {
+            // Ignore this poll result — it's a transient empty response
+            return;
+          }
+
+          // ✅ FIX 2: Only update state if draft actually changed
           if (
-            prevDraftRef.current !== null &&
             JSON.stringify(prevDraftRef.current) !== JSON.stringify(newDraft)
           ) {
-            onDraftUpdate?.();
+            if (prevDraftRef.current !== null) {
+              onDraftUpdate?.();
+            }
+            prevDraftRef.current = newDraft;
+            setDraft(newDraft);
           }
-          prevDraftRef.current = newDraft;
-          setDraft(newDraft);
+
           if (newDraft?.status === "ticket_created") {
             clearInterval(intervalRef.current);
             onStatusChange?.("ticket_created");
