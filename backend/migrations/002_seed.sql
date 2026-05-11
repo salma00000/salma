@@ -35,20 +35,20 @@ DO $$ BEGIN
   -- montant_ht recalculated by trigger: 549 + 100 = 649
   INSERT INTO articles (facture_id, nom_article, description, quantite, prix_unitaire, product_sku, product_brand, product_category, warranty_months) VALUES
     (1024, 'Lave-linge Bosch WAG28400',   'Lave-linge pose libre 8kg, 1400tr/min',  1, 549.00, 'LL-BOSCH-WAG28400',  'Bosch',     'Gros électroménager', 24),
-    (1024, 'Kit livraison et installation','Livraison domicile + raccordement',       1, 100.00, 'SVC-INSTALL-GEM',    NULL,        'Service',             NULL);
+    (1024, 'Kit livraison et installation','Livraison domicile + raccordement',       1, 100.00, 'SVC-INSTALL-GEM',    'Service',   'Service',             0);
 
   -- Articles — FAC-1025 (Marc Dubois — réfrigérateur Samsung)
   -- montant_ht: 799 + 100 = 899
   INSERT INTO articles (facture_id, nom_article, description, quantite, prix_unitaire, product_sku, product_brand, product_category, warranty_months) VALUES
     (1025, 'Réfrigérateur Samsung RB34',  'Réfrigérateur combiné No Frost 341L',     1, 799.00, 'FRG-SAMSUNG-RB34',   'Samsung',   'Gros électroménager', 24),
-    (1025, 'Extension de garantie +1 an', 'Couverture pièces et main-d''œuvre',      1, 100.00, 'SVC-WARRANTY-EXT',   NULL,        'Service',             NULL);
+    (1025, 'Extension de garantie +1 an', 'Couverture pièces et main-d''œuvre',      1, 100.00, 'SVC-WARRANTY-EXT',   'Service',   'Service',             0);
 
   -- Articles — FAC-1026 (Sophie Renard — téléviseur LG OLED)
   -- montant_ht: 1499 + 60 + 40 = 1599
   INSERT INTO articles (facture_id, nom_article, description, quantite, prix_unitaire, product_sku, product_brand, product_category, warranty_months) VALUES
     (1026, 'Téléviseur LG OLED 55"',      'TV OLED 4K 55" 120Hz, HDMI 2.1',         1, 1499.00, 'TV-LG-OLED55',       'LG',        'Audiovisuel',         24),
-    (1026, 'Support mural téléviseur',    'Support inclinable universel 32"–65"',    1,   60.00, 'ACC-MURAL-TV55',     NULL,        'Accessoire',          NULL),
-    (1026, 'Câble HDMI 2.1 2m',           'Câble HDMI haute vitesse 48Gbps',         1,   40.00, 'ACC-HDMI-2M',        NULL,        'Accessoire',          NULL);
+    (1026, 'Support mural téléviseur',    'Support inclinable universel 32"–65"',    1,   60.00, 'ACC-MURAL-TV55',     'Generic',   'Accessoire',          0),
+    (1026, 'Câble HDMI 2.1 2m',           'Câble HDMI haute vitesse 48Gbps',         1,   40.00, 'ACC-HDMI-2M',        'Generic',   'Accessoire',          0);
 
   -- Articles — FAC-1027 (Jean-Pierre Lambert — micro-ondes Whirlpool)
   -- montant_ht: 320
@@ -59,6 +59,6 @@ DO $$ BEGIN
   -- montant_ht: 1099 + 100 = 1199
   INSERT INTO articles (facture_id, nom_article, description, quantite, prix_unitaire, product_sku, product_brand, product_category, warranty_months) VALUES
     (1028, 'Lave-vaisselle Miele G7100',  'Lave-vaisselle encastrable 14 couverts',  1, 1099.00, 'DW-MIELE-G7100',     'Miele',     'Gros électroménager', 36),
-    (1028, 'Kit livraison et installation','Livraison domicile + raccordement',       1,  100.00, 'SVC-INSTALL-GEM',    NULL,        'Service',             NULL);
+    (1028, 'Kit livraison et installation','Livraison domicile + raccordement',       1,  100.00, 'SVC-INSTALL-GEM',    'Service',   'Service',             0);
 
 END $$;

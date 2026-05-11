@@ -1,0 +1,1417 @@
+{
+  "name": "SAV Assistant - POC (Q/R)- corrigé",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Bonjour 👋 Je suis votre assistant SAV.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -2720,
+        1072
+      ],
+      "id": "5e22ce2e-64fc-4ba7-8cdd-3f7bb3367023",
+      "name": "When chat message received",
+      "webhookId": "c88c52a0-fa1e-4bec-9b40-11d2a06585bf"
+    },
+    {
+      "parameters": {
+        "jsCode": "const userMessage = $input.first().json.chatInput;\nconst sessionId = $input.first().json.sessionId || 'default-session';\n\nreturn [{\n  json: {\n    sessionId,\n    userMessage\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2544,
+        1072
+      ],
+      "id": "d9933e4b-3021-4280-9bb6-371ce334434f",
+      "name": "Load Session State"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un assistant d'extraction pour un service SAV d'un magasin d'électroménager.\n\nÀ partir du message d'un conseiller, extrait les informations disponibles et retourne UNIQUEMENT un objet JSON valide (pas de texte avant ou après, pas de balises markdown, pas de ```), selon ce schéma exact :\n\n{\n  \"intent\": \"new_sav | validate | cancel | other\",\n  \"invoice_id\": \"string ou null\",\n  \"customer_name\": \"string ou null\",\n  \"product_type\": \"string ou null\",\n  \"product_brand\": \"string ou null\",\n  \"issue_type\": \"fuite | panne_electrique | casse | bruit | ne_demarre_pas | autre | null\",\n  \"issue_description\": \"string ou null\",\n  \"context\": \"string ou null\",\n  \"confidence\": 0.0,\n  \"needs_review\": false\n}\n\nRÈGLES DE DÉTECTION D'INTENTION :\n\n- \"validate\" : le conseiller valide explicitement le dossier en cours. Exemples :\n  * \"oui\", \"ok\", \"valide\", \"valider\", \"je valide\", \"créer le dossier\", \"créer\", \"confirme\", \"c'est bon\"\n  IMPORTANT : intent=\"validate\" UNIQUEMENT si le draft contient déjà des informations (pas un nouveau dossier vide)\n\n- \"cancel\" : le conseiller annule/refuse/recommence. Exemples :\n  * \"non\", \"annuler\", \"annule\", \"recommencer\", \"stop\", \"abandon\"\n\n- \"new_sav\" : le conseiller décrit une nouvelle demande ou complète des informations. C'est le cas par défaut.\n  * \"facture 1234, fuite lave-linge\" → new_sav\n  * \"fuite lave-linge\" → new_sav\n  * \"ça fuit par le bas\" → new_sav (complétion du dossier en cours)\n  * \"marque Bosch\" → new_sav\n  * \"Perceuse À Percussion/\nMachine à laver/Logiciel\" → new_sav (complétion)\n  * N.B. : Consultez le brouillon missing_fields pour plus de contexte sur le message du conseiller.\n\n- \"other\" : incompréhensible, question hors sujet, etc.\n\nRÈGLES D'EXTRACTION (inchangées) :\n- Si un champ n'est pas mentionné, mets null. Ne devine JAMAIS.\n- \"facture FAC-1234 → invoice_id = \"FAC-1234\"\n- \"lave-linge\" → product_type = \"lave-linge\"\n- \"fuite\" → issue_type = \"fuite\"\n- needs_review = true si confidence < 0.7\n\nDraft actuel (ne pas écraser, juste compléter) :\n{{ JSON.stringify($json.session.draft) }}\n\nMessage du conseiller à analyser :\n\"{{ $json.message }}\"\n\nRéponds UNIQUEMENT avec le JSON, rien d'autre.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1760,
+        1072
+      ],
+      "id": "94796e26-dc7e-4fa5-b6b9-1ad1df6ba148",
+      "name": "LLM Extract"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- 1. Parser la sortie du LLM Extract ---\nconst llmOutput = $input.first().json;\n\nlet extracted = null;\n\n// Cas 1 : le Basic LLM Chain retourne directement un objet JSON (quand format:json activé côté Ollama)\nif (llmOutput && typeof llmOutput === 'object' && llmOutput.invoice_id !== undefined) {\n  extracted = llmOutput;\n}\n// Cas 2 : le Basic LLM Chain retourne { text: \"...\" }\nelse if (llmOutput && typeof llmOutput.text === 'string') {\n  try {\n    let raw = llmOutput.text.trim();\n    raw = raw.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '').replace(/^```\\s*/i, '');\n    const firstBrace = raw.indexOf('{');\n    const lastBrace = raw.lastIndexOf('}');\n    if (firstBrace !== -1 && lastBrace !== -1) {\n      raw = raw.substring(firstBrace, lastBrace + 1);\n    }\n    extracted = JSON.parse(raw);\n  } catch (err) {\n    extracted = { confidence: 0, needs_review: true, _parse_error: err.message };\n  }\n}\n\n// Fallback si rien n'est exploitable\nif (!extracted) {\n  extracted = { confidence: 0, needs_review: true };\n}\n\n// --- 2. Récupérer le draft depuis PG Load Session et le userMessage ---\nconst pgSession = $('Merge Session').first().json.session;\nconst loadState = $('Load Session State').first().json;\n\nconst sessionId = pgSession.session_id;\nconst turn = pgSession.turn;\nconst draft = JSON.parse(JSON.stringify(pgSession.draft));\n\n// Garantir la structure minimale du draft (si Postgres retourne un truc partiel)\ndraft.customer = draft.customer || {};\ndraft.product = draft.product || {};\ndraft.purchase = draft.purchase || {};\ndraft.issue = draft.issue || {};\ndraft.history = draft.history || [];\ndraft.missing_fields = draft.missing_fields || [];\ndraft.warnings = draft.warnings || [];\ndraft.status = draft.status || \"draft\";\n\n// --- 3. Merge non-destructif ---\nif (extracted.invoice_id) {\n  draft.purchase.invoice_id = String(extracted.invoice_id);\n}\nif (extracted.product_type && !draft.product.category) {\n  draft.product.category = extracted.product_type;\n}\nif (extracted.product_brand && !draft.product.brand) {\n  draft.product.brand = extracted.product_brand;\n}\nif (extracted.issue_type && !draft.issue.type) {\n  draft.issue.type = extracted.issue_type;\n}\nif (extracted.issue_description && !draft.issue.description) {\n  draft.issue.description = extracted.issue_description;\n}\nif (extracted.customer_name && !draft.customer.name) {\n  draft.customer.name = extracted.customer_name;\n}\nif (extracted.context && !draft.issue.context) {\n  draft.issue.context = extracted.context;\n}\n\n// --- 4. Sortir le draft fusionné ---\nreturn [{\n  json: {\n    sessionId,\n    userMessage: loadState.userMessage,\n    draft,\n    extraction: extracted,\n    intent: extracted?.intent || 'new_sav',\n    turn\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1472,
+        1072
+      ],
+      "id": "81d77996-a4fb-443e-b4ec-b1f581d29a4c",
+      "name": "Merge Draft"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b45b970f-10c5-476f-9a28-5b042dfd0f4e",
+              "leftValue": "={{ $json.draft.purchase.invoice_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -720,
+        1072
+      ],
+      "id": "162c25d8-dacb-47e3-abf7-d6e6b261a761",
+      "name": "Has Invoice?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst draft = $('Has Invoice?').first().json.draft;\nconst invoiceId = draft.purchase.invoice_id;\nconst invoice = $input.first().json.data.find((i) => String(i.numero_facture) == String(invoiceId));\n\nif (!invoice) {\n  // Facture introuvable → warning mais on continue\n  draft.warnings = draft.warnings || [];\n  draft.warnings.push(`Facture ${invoiceId} introuvable en base`);\n  return [{\n    json: {\n      ...input,\n      draft,\n      invoice_found: false\n    }\n  }];\n}\n\n// Remplit le draft avec les infos de la facture (sans écraser)\ndraft.purchase.date = invoice.date_creation;\ndraft.purchase.store = invoice.store;\ndraft.purchase.amount = invoice.montant_total;\n\nif (!draft.customer.id) draft.customer.id = invoice.customer_id;\nif (!draft.customer.name) draft.customer.name = invoice.client_nom;\nif (!draft.customer.phone) draft.customer.phone = invoice.client_phone;\nif (!draft.customer.email) draft.customer.email = invoice.client_email;\nif (!draft.customer.loyalty) draft.customer.loyalty = invoice.client_loyalty_tier;\n\nreturn [{\n  json: {\n    ...input,\n    draft,\n    invoice_found: true\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        976
+      ],
+      "id": "8dd4d40a-3744-44a3-bd5d-394af36e9929",
+      "name": "Get Invoice"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mock DB clients\nconst customersDB = {\n  \"C-987\": {\n    id: \"C-987\",\n    name: \"Marie Dupont\",\n    email: \"marie.dupont@example.com\",\n    phone: \"+32 475 11 22 33\",\n    loyalty_tier: \"gold\",\n    address: \"Rue Neuve 12, 1000 Bruxelles\"\n  },\n  \"C-456\": {\n    id: \"C-456\",\n    name: \"Jean Martin\",\n    email: \"j.martin@example.com\",\n    phone: \"+32 478 44 55 66\",\n    loyalty_tier: \"silver\",\n    address: \"Quai de la Batte 8, 4000 Liège\"\n  }\n};\n\nconst input = $input.first().json;\nconst draft = JSON.parse(JSON.stringify(input.draft));\nconst customerId = draft.customer.id;\nconst customer = customerId ? customersDB[customerId] : null;\n\nif (customer) {\n  // Merge : n'écrase pas les champs déjà renseignés par le conseiller\n  draft.customer = {\n    ...customer,\n    ...draft.customer, // ce qui était déjà là garde la priorité\n    id: customer.id    // sauf l'id qui vient de la facture\n  };\n}\n\nreturn [{\n  json: {\n    ...input,\n    draft,\n    customer_found: !!customer\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        704
+      ],
+      "id": "0f5ddc97-1bde-4259-9770-850d2a53450d",
+      "name": "Get Customer"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Calculate similarity percentage between two strings\n * using Levenshtein Distance\n */\nfunction similarity(str1, str2) {\n  // Normalize strings\n  const s1 = str1.toLowerCase().trim();\n  const s2 = str2.toLowerCase().trim();\n\n  // Early return\n  if (s1 === s2) return 100;\n\n  const longer = s1.length > s2.length ? s1 : s2;\n  const shorter = s1.length > s2.length ? s2 : s1;\n\n  const distance = levenshteinDistance(longer, shorter);\n\n  return Number(\n    (((longer.length - distance) / longer.length) * 100).toFixed(2)\n  );\n}\n\nfunction levenshteinDistance(a, b) {\n  const matrix = [];\n\n  // Initialize first row/column\n  for (let i = 0; i <= b.length; i++) {\n    matrix[i] = [i];\n  }\n\n  for (let j = 0; j <= a.length; j++) {\n    matrix[0][j] = j;\n  }\n\n  // Fill matrix\n  for (let i = 1; i <= b.length; i++) {\n    for (let j = 1; j <= a.length; j++) {\n      if (b.charAt(i - 1) === a.charAt(j - 1)) {\n        matrix[i][j] = matrix[i - 1][j - 1];\n      } else {\n        matrix[i][j] = Math.min(\n          matrix[i - 1][j - 1] + 1, // substitution\n          matrix[i][j - 1] + 1,     // insertion\n          matrix[i - 1][j] + 1      // deletion\n        );\n      }\n    }\n  }\n\n  return matrix[b.length][a.length];\n}\n\nconst input = $input.all().map((i) => i.json);\nconst draft = $('Get Invoice').first().json.draft;\nconst invoice = $('Get Invoice').first().json.data.find((i) => i.numero_facture == draft.purchase.invoice_id);\nconst userMessage = $('Load Session State').first().json.userMessage\nconst sku = draft.product.sku;\nlet product = sku ? input.find((i) => i.product_sku == sku) : null;\nconst results = input.map(product => ({\n  product,\n  similarity: similarity(userMessage, product.nom_article)\n}));\n\nresults.sort((a, b) => b.similarity - a.similarity);\n\nif (results.at(0).similarity > 50) product = results.at(0).product;\n\nif (product) {\n  // Calcul warranty\n  if (invoice && product.warranty_months) {\n    const purchaseDate = new Date(invoice.date_creation);\n    const warrantyEnd = new Date(purchaseDate);\n    warrantyEnd.setMonth(warrantyEnd.getMonth() + product.warranty_months);\n    draft.purchase.warranty_end = warrantyEnd.toISOString().split('T')[0];\n    draft.purchase.under_warranty = new Date() < warrantyEnd;\n  }\n\n  draft.product = {\n    ...product,\n    ...draft.product, // priorité au conseiller\n    sku: product.product_sku\n  };\n}\n\nreturn [{\n  json: {\n    invoice_products: input,\n    draft,\n    product_found: !!product\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        832
+      ],
+      "id": "ee1d4700-5d62-47c3-9d01-0b3be12019a7",
+      "name": "Get Product"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mock DB historique SAV\nconst historyDB = {\n  \"C-987\": [\n    {\n      sav_id: \"SAV-2024-0455\",\n      date: \"2024-06-10\",\n      issue: \"bruit tambour\",\n      status: \"clos\",\n      product_sku: \"LL-BOSCH-WAG28400\"\n    }\n  ],\n  \"C-456\": []\n};\n\nconst input = $input.first().json;\nconst draft = JSON.parse(JSON.stringify(input.draft));\nconst customerId = draft.customer.id;\nconst history = customerId ? (historyDB[customerId] || []) : [];\n\ndraft.history = history;\n\nreturn [{\n  json: {\n    ...input,\n    draft,\n    history_count: history.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        992
+      ],
+      "id": "fa2d40c2-f7b1-4337-b554-66eff32df6f8",
+      "name": "Get SAV History"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst draft = JSON.parse(JSON.stringify(input.draft));\n\n// --- Champs obligatoires pour pouvoir créer le dossier SAV ---\n// askable = true → peut être demandé au conseiller directement\n// askable = false → se remplit automatiquement via les mocks quand la facture est trouvée\nconst required = [\n      {\n        path: \"purchase.invoice_id\",\n        label: \"numéro de facture\",\n        askable: true,\n      },\n      { path: \"issue.type\", label: \"type de panne\", askable: true },\n      {\n        path: \"issue.description\",\n        label: \"description du problème\",\n        askable: true,\n      },\n      { path: \"customer.name\", label: \"nom du client\", askable: true },\n      { path: \"product.sku\", label: \"produit\", askable: true },\n      { path: \"purchase.date\", label: \"date d'achat\", askable: false },\n      { path: \"customer.id\", label: \"identifiant client\", askable: false },\n    ];\n\nconst getByPath = (obj, path) => path.split('.').reduce((o, k) => (o === undefined || o === null) ? undefined : o[k], obj);\n\nconst missing = required\n  .filter(f => {\n    const v = getByPath(draft, f.path);\n    return v === undefined || v === null || v === \"\";\n  })\n  .map(f => ({ path: f.path, label: f.label, askable: f.askable }));\n\n// --- Contrôles de cohérence (warnings non bloquants) ---\nconst warnings = new Set(\n  Array.isArray(draft.warnings) ? draft.warnings : []\n);\n\n// 1. Date achat dans le futur\nif (draft.purchase?.date) {\n  const purchaseDate = new Date(draft.purchase.date);\n  if (purchaseDate > new Date()) {\n    warnings.add(\"Date d'achat incohérente (dans le futur)\");\n  }\n}\n\n// 2. Hors garantie\nif (draft.purchase?.under_warranty === false && draft.purchase?.warranty_end) {\n  warnings.add(`Produit hors garantie depuis le ${draft.purchase.warranty_end} — prévenir le client des frais potentiels`);\n}\n\n// 3. Cohérence panne / produit\nconst issueProductMatch = {\n  \"fuite\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"chauffe-eau\"],\n  \"ne_demarre_pas\":    [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"four\", \"micro-ondes\", \"television\", \"aspirateur\"],\n  \"bruit\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"aspirateur\", \"hotte\"],\n  \"panne_electrique\":  [\"television\", \"four\", \"micro-ondes\", \"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"hotte\"],\n  \"casse\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"television\", \"four\", \"micro-ondes\", \"aspirateur\", \"hotte\"]\n};\n\nif (draft.issue?.type && draft.product?.category) {\n  const validCategories = issueProductMatch[draft.issue.type];\n  if (validCategories && !validCategories.includes(draft.product.category)) {\n    warnings.add(`Panne \"${draft.issue.type}\" inhabituelle pour un \"${draft.product.category}\" — à confirmer avec le conseiller`);\n  }\n}\n\n// 4. Client avec historique récent (< 6 mois) sur le même produit\nif (Array.isArray(draft.history) && draft.history.length > 0 && draft.product?.sku) {\n  const sixMonthsAgo = new Date();\n  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);\n  const recentSameProduct = draft.history.find(h =>\n    h.product_sku === draft.product.sku && new Date(h.date) > sixMonthsAgo\n  );\n  if (recentSameProduct) {\n    warnings.add(`Un SAV récent existe sur ce produit (${recentSameProduct.sav_id} du ${recentSameProduct.date}) — envisager un échange plutôt qu'une réparation`);\n  }\n}\n\n// --- Mise à jour du draft ---\nconst isComplete = () => !missing.some(f => f.askable === true);\ndraft.missing_fields = missing.map(m => m.path);\ndraft.warnings = [...warnings];\ndraft.status = isComplete() ? \"ready_for_submission\" : \"draft\";\n\nreturn [{\n  json: {\n    sessionId: input.sessionId,\n    userMessage: input.userMessage,\n    draft,\n    missing,\n    warnings: [...warnings],\n    is_complete: isComplete(),\n    turn: input.turn\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        1088
+      ],
+      "id": "e3af8425-7f89-441e-b708-3f235899c7e8",
+      "name": "Validate & Detect Missing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7b71981c-7129-4d42-8c52-cbbda2be6e0d",
+              "leftValue": "={{ $json.is_complete }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        1088
+      ],
+      "id": "b9dd8d47-e33f-4f07-9ecc-839cdceec723",
+      "name": "Is Complete?"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un assistant SAV de magasin d'électroménager. Tu t'adresses à un conseiller en magasin (pas au client).\n\nVoici le dossier SAV pré-rempli, prêt à être soumis :\n\n{{ JSON.stringify($json.draft, null, 2) }}\n\nWarnings de cohérence :\n{{ JSON.stringify($json.warnings) }}\n\nGénère un récapitulatif clair et structuré pour le conseiller, en markdown, en français.\n\nFormat attendu :\n1. Titre : \"🛠️ Dossier SAV prêt à soumettre\"\n2. Si warnings présents, les afficher en premier avec ⚠️ en tête\n3. Bloc \"Client\" : nom, email, téléphone, niveau fidélité\n4. Bloc \"Produit\" : label, marque, SKU\n5. Bloc \"Achat\" : n° facture, date, magasin, garantie (OK / hors garantie)\n6. Bloc \"Panne\" : type, description\n7. Si historique SAV non vide : \"Historique SAV\" avec les cas précédents\n8. Termine par : \"✅ Voulez-vous valider et créer le dossier SAV ? (oui/non)\"\n\nSois concis. Pas de blabla. Pas de formules de politesse longues.\nIMPORTANT : ne JAMAIS entourer ta réponse de ``` ou de balises de code. Réponds directement en markdown brut.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1168,
+        928
+      ],
+      "id": "fe18b4b1-3971-4a2b-864d-fe93f1087b69",
+      "name": "LLM Recap"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un assistant SAV de magasin. Tu parles à un conseiller en magasin.\n\nLe dossier SAV est en cours de création mais il manque des informations. Ta mission : poser UNE SEULE question ciblée et concise au conseiller.\n\nDraft actuel :\n{{ JSON.stringify($json.draft, null, 2) }}\n\nProduits du facture trouve :\n{{ JSON.stringify($('Get Product').item.json.invoice_products) }} || []\n\nChamps manquants par ordre de priorité :\n{{ JSON.stringify($json.missing) }}\n\nRÈGLES STRICTES :\n\n1. Identifie le PREMIER champ dans missing[] qui a \"askable\": true\n2. IGNORE les champs avec \"askable\": false (ce sont des IDs système qui se rempliront automatiquement quand on aura la facture)\n3. Pose UNE SEULE question pour CE champ précis\n4. Si le champ est déjà présent dans le draft, NE LE REDEMANDE JAMAIS\n5. Réponds en MAXIMUM 2 lignes\n6. N'entoure JAMAIS ta réponse de ``` ou de balises markdown\n\nExemples selon le champ :\n- purchase.invoice_id → \"Quel est le numéro de facture ?\"\n- issue.type (si pas dans draft) → \"Quel est le type de panne : fuite, panne électrique, bruit, casse ou ne démarre pas ?\"\n- issue.description → \"Pouvez-vous décrire brièvement le problème constaté ?\"\n- customer.name → \"Quel est le nom du client ?\"\n- product.sku → \"Quel est le produit en question?\" (Énumérer tous les noms des produits figurant sur la facture trouvée afin que le conseiller puisse faire son choix)\n\nRéponds directement avec la question, sans préambule.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1200,
+        1248
+      ],
+      "id": "e54cd4c6-15b5-49cf-a746-32485a0828b3",
+      "name": "LLM Question"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2128,
+        1344
+      ],
+      "id": "7662da08-05f5-4265-8c9f-3228929e3b53",
+      "name": "Merge Response"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://backend:3002/api/internal/sessions/{{ $json.sessionId }}/draft",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ draft: $json.draft }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1296,
+        1072
+      ],
+      "id": "15eaf8b6-4359-4232-9d0f-75f48c4deadb",
+      "name": "PG Save Session"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [$('Merge Draft').first()];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        1072
+      ],
+      "id": "8fc5e3a6-e981-4dd1-86ed-5720235a73e6",
+      "name": "Passthrough"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://backend:3002/api/internal/sessions/{{ $('Has Invoice?').item.json.sessionId }}/draft",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ draft: $json.draft }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        544,
+        1088
+      ],
+      "id": "dba95467-522d-434c-94e3-b5cd6ecdeafc",
+      "name": "PG Save Final"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [$('Validate & Detect Missing').first()];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        1088
+      ],
+      "id": "e3023816-70ff-422d-93d9-a937e3ac7dd9",
+      "name": "Passthrough Final"
+    },
+    {
+      "parameters": {
+        "content": "pour tester:\n1. facture 1234, fuite lave-linge, ça fuit par le bas\n2. fuite lave-linge\n3. facture 9999, problème\n4. facture 9012, fuite télé\n5. Multi-tour : tour 1 facture 1234 puis tour 2 il fait du bruit, il vibre fort\n",
+        "height": 192,
+        "width": 304
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2528,
+        800
+      ],
+      "typeVersion": 1,
+      "id": "0e1145f5-89c9-494f-8df5-dcf043354b5f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "new_sav",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "73e89859-9ea0-4a91-a662-2ddb89b39aa3"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "new_sav"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c199f56c-99ad-4d84-8d02-a38462149570",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "validate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "validate"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "245e53a1-4e15-4649-b0ac-6f86046efde1",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "cancel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancel"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1008,
+        1520
+      ],
+      "id": "5b9edc10-a24c-4620-8241-15ce883165fb",
+      "name": "Route Intent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst draft = input.draft || {};\n\n// Garantir la structure\ndraft.customer = draft.customer || {};\ndraft.product = draft.product || {};\ndraft.purchase = draft.purchase || {};\ndraft.issue = draft.issue || {};\ndraft.history = draft.history || [];\ndraft.warnings = draft.warnings || [];\n\n// Champs obligatoires pour créer le ticket\nconst required = [\n  \"customer.id\",\n  \"customer.name\",\n  \"product.sku\",\n  \"purchase.invoice_id\",\n  \"purchase.date\",\n  \"issue.type\",\n  \"issue.description\"\n];\n\nconst getByPath = (obj, path) => path.split('.').reduce((o, k) => (o === undefined || o === null) ? undefined : o[k], obj);\n\nconst missing = required.filter(path => {\n  const v = getByPath(draft, path);\n  return v === undefined || v === null || v === \"\";\n});\n\nconst isReady = missing.length === 0;\n\n// Générer un ticket_id unique (format SAV-YYYYMMDD-HHMMSS-XXX)\nconst now = new Date();\nconst pad = (n, l=2) => String(n).padStart(l, '0');\nconst ticketId = `SAV-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}-${pad(Math.floor(Math.random()*1000), 3)}`;\n\nreturn [{\n  json: {\n    sessionId: input.sessionId,\n    userMessage: input.userMessage,\n    draft,\n    isReady,\n    missing,\n    ticketId,\n    turn: input.turn\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        1248
+      ],
+      "id": "5621035e-3e65-463f-9b4d-49623fd73a6b",
+      "name": "Check Ready"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "31955c6d-35ef-4769-a369-890ba55372dd",
+              "leftValue": "={{ $json.isReady }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -272,
+        1408
+      ],
+      "id": "66e5ed92-2e03-4f42-8989-2be77de0c6e1",
+      "name": "Is Ready?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:3002/api/internal/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ticketId: $json.ticketId, sessionId: $json.sessionId, draft: $json.draft }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        128,
+        1392
+      ],
+      "id": "4c11ed71-f07b-48da-bc05-4e57522bbafe",
+      "name": "Create SAV Ticket"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://backend:3002/api/internal/sessions/{{ $('Check Ready').first().json.sessionId }}/status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"status\":\"ticket_created\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        304,
+        1392
+      ],
+      "id": "d9b5319d-3258-407c-b412-c4cf2795a222",
+      "name": "Cleanup Session"
+    },
+    {
+      "parameters": {
+        "jsCode": "const checkReady = $('Check Ready').first().json;\nconst createTicket = $('Create SAV Ticket').first().json;\n\nreturn [{\n  json: {\n    ticketId: createTicket.ticket_id || checkReady.ticketId,\n    createdAt: createTicket.created_at,\n    customerName: checkReady.draft?.customer?.name,\n    productLabel: checkReady.draft?.product?.label,\n    issueType: checkReady.draft?.issue?.type,\n    issueDescription: checkReady.draft?.issue?.description,\n    warnings: checkReady.draft?.warnings || [],\n    underWarranty: checkReady.draft?.purchase?.under_warranty\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        1392
+      ],
+      "id": "e57596bb-969b-4801-804e-c9cab2c3692b",
+      "name": "Prepare Confirmation"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un assistant SAV. Le dossier SAV vient d'être créé avec succès en base.\n\nDonnées du ticket créé :\n{{ JSON.stringify($json, null, 2) }}\n\nGénère un message de confirmation clair et concis en markdown pour le conseiller.\n\nFORMAT ATTENDU :\n\n## ✅ Dossier SAV créé avec succès\n\n**Numéro de ticket :** {{ $json.ticketId }}\n\n**Client :** [customerName]\n**Produit :** [productLabel]\n**Panne :** [issueType] — [issueDescription]\n\n[Si warnings présents, les afficher avec ⚠️ au début, un par ligne]\n\n[Si underWarranty = false, ajouter : \"🏷️ Hors garantie — facturation prévue\"]\n[Si underWarranty = true, ajouter : \"🛡️ Sous garantie — prise en charge totale\"]\n\n---\n\nLe ticket est transmis au service technique. \n\nTapez sur \"Nouvelle conversation\" pour créer un autre dossier.\n\nRÈGLES STRICTES :\n- N'entoure JAMAIS ta réponse de ``` ou balises markdown\n- N'invente aucune donnée, utilise uniquement ce qui est dans les données ci-dessus\n- Sois concis, pas de blabla",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        720,
+        1392
+      ],
+      "id": "c6d357e7-783a-44b8-a49d-281606c39f41",
+      "name": "LLM Confirmation"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un assistant SAV. Le conseiller a tenté de valider le dossier mais il est incomplet.\n\nDraft actuel :\n{{ JSON.stringify($json.draft, null, 2) }}\n\nChamps encore manquants :\n{{ JSON.stringify($json.missing) }}\n\nGénère un message court (2-3 lignes) qui :\n1. Indique que le dossier ne peut pas encore être créé\n2. Liste brièvement ce qui manque (sans jargon technique — \"nom du client\" plutôt que \"customer.name\")\n3. Invite le conseiller à compléter\n\nTon direct, pas de blabla. Pas de balises ```.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        112,
+        1568
+      ],
+      "id": "24159728-9d83-46e4-9120-722814295627",
+      "name": "LLM Incomplete"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://backend:3002/api/internal/sessions/{{ $json.sessionId }}/status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"status\":\"cancelled\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -240,
+        1872
+      ],
+      "id": "dda5f697-01ef-46e4-ab8f-d90306928777",
+      "name": "Cancel Session"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5c75ee6c-5f09-42c1-a688-e5987f25b7d0",
+              "name": "text",
+              "value": "❌ Dossier SAV annulé. La session a été réinitialisée.  Tapez un nouveau message pour créer un autre dossier.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        1904
+      ],
+      "id": "5ef01a07-c31d-4201-8fe3-d47c09630fd6",
+      "name": "Cancel Message"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0aa31fef-2e9e-4a7a-bc10-494153d73d90",
+              "name": "text",
+              "value": "🤔 Je n'ai pas bien compris votre demande.  Pour créer un dossier SAV, indiquez au minimum : - Le numéro de facture (ex: \"facture 1234\") - Le type de problème (ex: \"fuite\", \"panne électrique\", \"bruit\")  Exemple : \"facture 1234, fuite lave-linge\"",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -800,
+        1728
+      ],
+      "id": "581da2cd-93ea-4195-935a-33b201654006",
+      "name": "Fallback Message"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:3002/api/internal/sessions/{{ $('Load Session State').first().json.sessionId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -2128,
+        1280
+      ],
+      "id": "be913487-5b8f-47d9-9a99-3d34f9050418",
+      "name": "PG New Session"
+    },
+    {
+      "parameters": {
+        "jsCode": "const getNodeData = (nodeName) => {\n  try {\n    return $(nodeName).first().json;\n  } catch (e) {\n    return null;\n  }\n};\n\nconst loadSession = getNodeData('PG Load Session');\nconst newSession = getNodeData('PG New Session');\n\nconst isEmpty = (obj) => !obj || Object.keys(obj).length === 0;\n\nconst session = !isEmpty(loadSession) ? loadSession : newSession;\n\n// Increment turn for loaded Sessions\nif (!isEmpty(loadSession)) session.turn++;\n\nreturn [{\n  json: {\n    session,\n    message: $('Load Session State').first().json.userMessage\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        1072
+      ],
+      "id": "727fff12-3493-4e42-93e0-cafde8bfcd1a",
+      "name": "Merge Session"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "95a8b5fc-4589-45d1-afbe-5440ee431fc7",
+              "leftValue": "={{ $json.session_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2144,
+        1072
+      ],
+      "id": "827f07a4-c0a2-42c8-8d89-2f41617189c7",
+      "name": "If Session Exist"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        64,
+        1728
+      ],
+      "id": "75b42258-ae76-476f-8431-7e5d81c9a7c2",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "fP8xkejAfeuEsdgN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=http://backend:3002/api/internal/sessions/{{ $json.sessionId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -2336,
+        1072
+      ],
+      "id": "19db925b-c072-4e86-a5fd-31b84d522c63",
+      "name": "PG Load Session"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        1456
+      ],
+      "id": "4206b373-cf94-4713-8da3-1ece5d9f1e0b",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "fP8xkejAfeuEsdgN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        656,
+        1600
+      ],
+      "id": "b5fe9e5a-3106-4789-9bfc-1066b6589ebd",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "fP8xkejAfeuEsdgN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1712,
+        1248
+      ],
+      "id": "3f22ae11-14d2-46ff-b6b8-5492a140e2b1",
+      "name": "Groq Chat Model3",
+      "credentials": {
+        "groqApi": {
+          "id": "fP8xkejAfeuEsdgN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=http://backend:3002/api/factures?page=1&limit=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -512,
+        816
+      ],
+      "id": "9053a679-16b4-4a74-b16c-c879abfea34d",
+      "name": "Get Invoices"
+    },
+    {
+      "parameters": {
+        "url": "=http://backend:3002/api/articles?facture_id={{ $('Get Invoice').item.json.draft.purchase.invoice_id.split(\"-\")[1] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "=BwUnV5urcj5hxrXS0IFDKd0BOGi"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -160,
+        832
+      ],
+      "id": "9018999b-b43a-4522-be75-3dc2dace57b1",
+      "name": "Get Products"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b45b970f-10c5-476f-9a28-5b042dfd0f4e",
+              "leftValue": "={{ $json.invoice_found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -304,
+        976
+      ],
+      "id": "91f0784d-b62e-4adf-93b0-e675d0e2e8ba",
+      "name": "Invoice Found?"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        1072
+      ],
+      "id": "71640813-3424-4653-81cb-ed396ef21370",
+      "name": "Groq Chat Model4",
+      "credentials": {
+        "groqApi": {
+          "id": "fP8xkejAfeuEsdgN",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Load Session State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Session State": {
+      "main": [
+        [
+          {
+            "node": "PG Load Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Extract": {
+      "main": [
+        [
+          {
+            "node": "Merge Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Draft": {
+      "main": [
+        [
+          {
+            "node": "PG Save Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Invoice?": {
+      "main": [
+        [
+          {
+            "node": "Get Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate & Detect Missing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Invoice": {
+      "main": [
+        [
+          {
+            "node": "Invoice Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product": {
+      "main": [
+        [
+          {
+            "node": "Get SAV History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get SAV History": {
+      "main": [
+        [
+          {
+            "node": "Validate & Detect Missing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Detect Missing": {
+      "main": [
+        [
+          {
+            "node": "PG Save Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Complete?": {
+      "main": [
+        [
+          {
+            "node": "LLM Recap",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LLM Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Recap": {
+      "main": [
+        [
+          {
+            "node": "Merge Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Question": {
+      "main": [
+        [
+          {
+            "node": "Merge Response",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "PG Save Session": {
+      "main": [
+        [
+          {
+            "node": "Passthrough",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Passthrough": {
+      "main": [
+        [
+          {
+            "node": "Route Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Save Final": {
+      "main": [
+        [
+          {
+            "node": "Passthrough Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Passthrough Final": {
+      "main": [
+        [
+          {
+            "node": "Is Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Intent": {
+      "main": [
+        [
+          {
+            "node": "Has Invoice?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Ready",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancel Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Ready": {
+      "main": [
+        [
+          {
+            "node": "Is Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Ready?": {
+      "main": [
+        [
+          {
+            "node": "Create SAV Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LLM Incomplete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create SAV Ticket": {
+      "main": [
+        [
+          {
+            "node": "Cleanup Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup Session": {
+      "main": [
+        [
+          {
+            "node": "Prepare Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Confirmation": {
+      "main": [
+        [
+          {
+            "node": "LLM Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Merge Response",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "LLM Incomplete": {
+      "main": [
+        [
+          {
+            "node": "Merge Response",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Cancel Session": {
+      "main": [
+        [
+          {
+            "node": "Cancel Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel Message": {
+      "main": [
+        [
+          {
+            "node": "Merge Response",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Fallback Message": {
+      "main": [
+        [
+          {
+            "node": "Merge Response",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "PG New Session": {
+      "main": [
+        [
+          {
+            "node": "Merge Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Session": {
+      "main": [
+        [
+          {
+            "node": "LLM Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Session Exist": {
+      "main": [
+        [
+          {
+            "node": "Merge Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PG New Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Incomplete",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG Load Session": {
+      "main": [
+        [
+          {
+            "node": "If Session Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Question",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Confirmation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Extract",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Invoices": {
+      "main": [
+        [
+          {
+            "node": "Get Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Found?": {
+      "main": [
+        [
+          {
+            "node": "Get Products",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get SAV History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Products": {
+      "main": [
+        [
+          {
+            "node": "Get Product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Recap",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b52b4010-7f77-463c-b7b7-757e1d34f78f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "843fdc15c4af75420d41ff38c62a401f4ae90ecc1d58d36bab01fdd2b6e450d8"
+  },
+  "id": "k2fpMOEVGGIoUsxx",
+  "tags": []
+}

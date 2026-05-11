@@ -23,24 +23,24 @@ ALTER TABLE factures DROP COLUMN IF EXISTS warranty_months;
 UPDATE articles SET product_sku = 'LL-BOSCH-WAG28400', product_brand = 'Bosch',    product_category = 'Gros électroménager', warranty_months = 24
 WHERE facture_id = 1024 AND nom_article ILIKE '%Bosch%';
 
-UPDATE articles SET product_sku = 'SVC-INSTALL-GEM', product_brand = NULL, product_category = 'Service', warranty_months = NULL
+UPDATE articles SET product_sku = 'SVC-INSTALL-GEM', product_brand = 'Service', product_category = 'Service', warranty_months = 0
 WHERE facture_id = 1024 AND nom_article ILIKE '%installation%';
 
 -- FAC-1025 — Marc Dubois — Samsung fridge + warranty extension
 UPDATE articles SET product_sku = 'FRG-SAMSUNG-RB34', product_brand = 'Samsung',  product_category = 'Gros électroménager', warranty_months = 24
 WHERE facture_id = 1025 AND nom_article ILIKE '%Samsung%';
 
-UPDATE articles SET product_sku = 'SVC-WARRANTY-EXT', product_brand = NULL, product_category = 'Service', warranty_months = NULL
+UPDATE articles SET product_sku = 'SVC-WARRANTY-EXT', product_brand = 'Service', product_category = 'Service', warranty_months = 0
 WHERE facture_id = 1025 AND nom_article ILIKE '%garantie%';
 
 -- FAC-1026 — Sophie Renard — LG OLED TV + accessories
 UPDATE articles SET product_sku = 'TV-LG-OLED55',    product_brand = 'LG',        product_category = 'Audiovisuel',         warranty_months = 24
 WHERE facture_id = 1026 AND nom_article ILIKE '%LG%';
 
-UPDATE articles SET product_sku = 'ACC-MURAL-TV55',  product_brand = NULL, product_category = 'Accessoire', warranty_months = NULL
+UPDATE articles SET product_sku = 'ACC-MURAL-TV55',  product_brand = 'Generic', product_category = 'Accessoire', warranty_months = 0
 WHERE facture_id = 1026 AND nom_article ILIKE '%support%';
 
-UPDATE articles SET product_sku = 'ACC-HDMI-2M',     product_brand = NULL, product_category = 'Accessoire', warranty_months = NULL
+UPDATE articles SET product_sku = 'ACC-HDMI-2M',     product_brand = 'Generic', product_category = 'Accessoire', warranty_months = 0
 WHERE facture_id = 1026 AND nom_article ILIKE '%hdmi%';
 
 -- FAC-1027 — Jean-Pierre Lambert — Whirlpool microwave
@@ -51,5 +51,5 @@ WHERE facture_id = 1027 AND nom_article ILIKE '%Whirlpool%';
 UPDATE articles SET product_sku = 'DW-MIELE-G7100',  product_brand = 'Miele',     product_category = 'Gros électroménager', warranty_months = 36
 WHERE facture_id = 1028 AND nom_article ILIKE '%Miele%';
 
-UPDATE articles SET product_sku = 'SVC-INSTALL-GEM', product_brand = NULL, product_category = 'Service', warranty_months = NULL
+UPDATE articles SET product_sku = 'SVC-INSTALL-GEM', product_brand = 'Service', product_category = 'Service', warranty_months = 0
 WHERE facture_id = 1028 AND nom_article ILIKE '%installation%';
