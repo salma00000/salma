@@ -194,7 +194,7 @@ export default function Chat() {
 
       <DraftPanel
         sessionId={activeSessionId}
-        onStatusChange={(s) => setIsArchived(s === "ticket_created")}
+        onStatusChange={(s) => setIsArchived(s === "folder_created")}
         onDraftUpdate={handleDraftUpdate}
         isMobile={isMobile}
         isOpen={rightOpen}

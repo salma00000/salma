@@ -12,6 +12,6 @@ router.post("/sessions/:sessionId", c.upsertSession);
 router.patch("/sessions/:sessionId/draft", c.updateDraft);
 router.patch("/sessions/:sessionId/status", c.updateStatus);
 router.delete("/sessions/:sessionId", c.deleteSession);
-router.post("/tickets", c.createTicketFromDraft);
+router.post("/folders", c.createFolderFromDraft);
 
 module.exports = router;

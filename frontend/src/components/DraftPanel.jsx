@@ -31,12 +31,12 @@ export default function DraftPanel({
           const newIsEmpty =
             !newDraft ||
             (!newDraft.customer?.name &&
-              !newDraft.purchase?.invoice_id &&
+              !newDraft.invoice?.invoice_number &&
               !newDraft.issue?.type);
           const prevIsPopulated =
             prevDraftRef.current &&
             (prevDraftRef.current.customer?.name ||
-              prevDraftRef.current.purchase?.invoice_id ||
+              prevDraftRef.current.invoice?.invoice_number ||
               prevDraftRef.current.issue?.type);
 
           if (newIsEmpty && prevIsPopulated) {
@@ -55,9 +55,9 @@ export default function DraftPanel({
             setDraft(newDraft);
           }
 
-          if (newDraft?.status === "ticket_created") {
+          if (newDraft?.status === "folder_created") {
             clearInterval(intervalRef.current);
-            onStatusChange?.("ticket_created");
+            onStatusChange?.("folder_created");
           }
         })
         .catch(console.error);
@@ -70,7 +70,7 @@ export default function DraftPanel({
         prevDraftRef.current = session.draft; // seed reference — no update fired
         setLoading(false);
         onStatusChange?.(session.draft?.status ?? "draft");
-        if (session.draft?.status !== "ticket_created") {
+        if (session.draft?.status !== "folder_created") {
           intervalRef.current = setInterval(fetchDraft, 3000);
         }
       })
@@ -124,12 +124,12 @@ export default function DraftPanel({
   const isEmpty =
     !draft ||
     (!draft.customer?.name &&
-      !draft.purchase?.invoice_id &&
+      !draft.invoice?.invoice_number &&
       !draft.issue?.type);
 
   if (isEmpty) return emptyContent("En attente des informations…");
 
-  const warrantyUnder = draft.purchase?.under_warranty;
+  const warrantyUnder = draft.invoice?.under_warranty;
 
   return (
     <aside style={panelStyle}>
@@ -150,7 +150,7 @@ export default function DraftPanel({
         )}
       </div>
 
-      {draft.status === "ticket_created" && (
+      {draft.status === "folder_created" && (
         <div style={styles.ticketBadge}>✅ Dossier créé</div>
       )}
 
@@ -171,9 +171,9 @@ export default function DraftPanel({
 
       {/* Achat */}
       <Section title="Achat">
-        <Field label="N° Facture" value={draft.purchase?.invoice_id} mono />
-        <Field label="Date" value={draft.purchase?.date} />
-        <Field label="Magasin" value={draft.purchase?.store} />
+        <Field label="N° Facture" value={draft.invoice?.invoice_number} mono />
+        <Field label="Date" value={draft.invoice?.date} />
+        <Field label="Magasin" value={draft.invoice?.store} />
         {warrantyUnder !== null && warrantyUnder !== undefined && (
           <div style={{ marginTop: "6px" }}>
             <span

@@ -5,8 +5,8 @@ const { Prisma } = require("@prisma/client");
 
 const EMPTY_DRAFT = {
   customer: {},
+  invoice: {},
   product: {},
-  purchase: {},
   issue: {},
   history: [],
   missing_fields: [],
@@ -32,7 +32,6 @@ async function getSession(req, res, next) {
 
 /**
  * POST /api/internal/sessions/:sessionId
- * Insert or increment turn (mirrors PG New Session ON CONFLICT logic).
  */
 async function upsertSession(req, res, next) {
   try {
@@ -57,9 +56,7 @@ async function updateDraft(req, res, next) {
     const { sessionId } = req.params;
     const { draft } = req.body;
     if (!draft || typeof draft !== "object") {
-      return res
-        .status(400)
-        .json({ error: "Body must contain a draft object" });
+      return res.status(400).json({ error: "Body must contain a draft object" });
     }
     try {
       const result = await prisma.savSession.update({
@@ -69,10 +66,7 @@ async function updateDraft(req, res, next) {
       });
       res.json(result);
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2025"
-      ) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
         return res.status(404).json({ error: "Session not found" });
       }
       throw err;
@@ -84,16 +78,13 @@ async function updateDraft(req, res, next) {
 
 /**
  * PATCH /api/internal/sessions/:sessionId/status
- * Uses jsonb_set — requires raw query since Prisma doesn't support JSONB operators.
  */
 async function updateStatus(req, res, next) {
   try {
     const { sessionId } = req.params;
     const { status } = req.body || {};
     if (!status || typeof status !== "string") {
-      return res
-        .status(400)
-        .json({ error: "Body must contain a status string" });
+      return res.status(400).json({ error: "Body must contain a status string" });
     }
     const rows = await prisma.$queryRaw`
       UPDATE sav_sessions
@@ -123,58 +114,63 @@ async function deleteSession(req, res, next) {
 }
 
 /**
- * POST /api/internal/tickets
+ * POST /api/internal/folders
+ * Creates a sav_folder from the AI draft and marks session as folder_created.
  */
-async function createTicketFromDraft(req, res, next) {
+async function createFolderFromDraft(req, res, next) {
   try {
-    const { ticketId, sessionId, draft } = req.body || {};
-    if (!ticketId || !sessionId || !draft) {
-      return res
-        .status(400)
-        .json({ error: "ticketId, sessionId and draft are required" });
+    const { folderRef, sessionId, draft } = req.body || {};
+    if (!folderRef || !sessionId || !draft) {
+      return res.status(400).json({ error: "folderRef, sessionId and draft are required" });
     }
 
-    let factureId = null;
-    const invoiceRef = draft.purchase?.invoice_id;
-    if (invoiceRef) {
-      const facture = await prisma.facture.findUnique({
-        where: { numero_facture: String(invoiceRef) },
-        select: { id: true },
+    let invoiceDbId = null;
+    const invoiceNumber = draft.invoice?.invoice_number;
+    if (invoiceNumber) {
+      const invoice = await prisma.invoice.findUnique({
+        where: { invoice_number: String(invoiceNumber) },
+        select: { id: true, customer_id: true },
       });
-      if (facture) factureId = facture.id;
+      if (invoice) invoiceDbId = invoice.id;
     }
 
-    const issueDesc =
-      draft.issue?.description || draft.issue?.type || "Non spécifié";
-    const aiSummary =
-      [draft.issue?.type, draft.issue?.description]
-        .filter(Boolean)
-        .join(": ") || null;
+    let customerId = null;
+    if (invoiceDbId) {
+      const inv = await prisma.invoice.findUnique({
+        where: { id: invoiceDbId },
+        select: { customer_id: true },
+      });
+      customerId = inv?.customer_id ?? null;
+    }
 
-    const ticket = await prisma.savTicket.create({
+    const issueDesc = draft.issue?.description || draft.issue?.type || "Non spécifié";
+    const aiSummary =
+      [draft.issue?.type, draft.issue?.description].filter(Boolean).join(": ") || null;
+
+    const folder = await prisma.savFolder.create({
       data: {
-        ticket_id: ticketId,
-        facture_id: factureId,
-        numero_facture: invoiceRef ? String(invoiceRef) : null,
-        client_nom: draft.customer?.name || null,
-        client_email: draft.customer?.email || null,
-        order_date: draft.purchase?.date ? new Date(draft.purchase.date) : null,
+        folder_reference: folderRef,
+        customer_id: customerId,
+        invoice_id: invoiceDbId,
+        invoice_number: invoiceNumber ? String(invoiceNumber) : null,
+        issue_type: draft.issue?.type || null,
         issue_description: issueDesc,
+        product_state: draft.product?.state || null,
         status: "open",
         priority: "medium",
         ai_summary: aiSummary,
       },
-      select: { ticket_id: true, created_at: true },
+      select: { folder_reference: true, created_at: true },
     });
 
     await prisma.$executeRaw`
       UPDATE sav_sessions
-      SET draft = jsonb_set(COALESCE(draft, '{}'), '{status}', '"ticket_created"'),
+      SET draft = jsonb_set(COALESCE(draft, '{}'), '{status}', '"folder_created"'),
           updated_at = NOW()
       WHERE session_id = ${sessionId}
     `;
 
-    res.status(201).json(ticket);
+    res.status(201).json(folder);
   } catch (err) {
     next(err);
   }
@@ -186,5 +182,5 @@ module.exports = {
   updateDraft,
   updateStatus,
   deleteSession,
-  createTicketFromDraft,
+  createFolderFromDraft,
 };

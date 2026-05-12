@@ -11,7 +11,7 @@ function timeAgo(dateStr) {
 
 export default function ConversationItem({ conversation, active, onClick, onDelete }) {
   const { label, updated_at, draft } = conversation;
-  const isArchived = draft?.status === 'ticket_created';
+  const isArchived = draft?.status === 'folder_created';
 
   return (
     <div

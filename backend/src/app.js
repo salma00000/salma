@@ -24,8 +24,9 @@ const errorHandler = require("./middleware/errorHandler");
 const requireAuth = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const conversationRoutes = require("./routes/conversations");
-const facturesRoutes = require("./routes/factures");
-const articlesRoutes = require("./routes/articles");
+const customersRoutes = require("./routes/customers");
+const invoicesRoutes = require("./routes/invoices");
+const invoiceLinesRoutes = require("./routes/invoiceLines");
 const savRoutes = require("./routes/sav");
 const internalRoutes = require("./routes/internal");
 const swaggerRouter = require("./swagger/router");
@@ -64,8 +65,9 @@ app.get("/health", async (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/conversations", requireAuth, conversationRoutes);
-app.use("/api/factures", facturesRoutes);
-app.use("/api/articles", articlesRoutes);
+app.use("/api/customers", customersRoutes);
+app.use("/api/invoices", invoicesRoutes);
+app.use("/api/invoice-lines", invoiceLinesRoutes);
 app.use("/api/sav", savRoutes);
 app.use("/api/internal", internalRoutes);
 app.use("/api-docs", swaggerRouter);
