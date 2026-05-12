@@ -1,36 +1,32 @@
 "use strict";
 
-const pool = require("../db/pool");
+const prisma = require("../db/prisma");
 
 async function findById(sessionId) {
-  const { rows } = await pool.query(
-    "SELECT * FROM sav_sessions WHERE session_id = $1",
-    [sessionId],
-  );
-  return rows[0] || null;
+  return prisma.savSession.findUnique({ where: { session_id: sessionId } });
 }
 
 async function create(sessionId, advisorId, draft) {
-  const { rows } = await pool.query(
-    `INSERT INTO sav_sessions (session_id, draft, turn, advisor_id, updated_at)
-     VALUES ($1, $2, 0, $3, now()) RETURNING *`,
-    [sessionId, JSON.stringify(draft), advisorId],
-  );
-  return rows[0];
+  return prisma.savSession.create({
+    data: {
+      session_id: sessionId,
+      draft,
+      turn: 0,
+      advisor_id: advisorId,
+      updated_at: new Date(),
+    },
+  });
 }
 
 async function listByAdvisor(advisorId) {
-  const { rows } = await pool.query(
-    "SELECT * FROM sav_sessions WHERE advisor_id = $1 ORDER BY updated_at DESC",
-    [advisorId],
-  );
-  return rows;
+  return prisma.savSession.findMany({
+    where: { advisor_id: advisorId },
+    orderBy: { updated_at: "desc" },
+  });
 }
 
 async function remove(sessionId) {
-  await pool.query("DELETE FROM sav_sessions WHERE session_id = $1", [
-    sessionId,
-  ]);
+  await prisma.savSession.delete({ where: { session_id: sessionId } });
 }
 
 module.exports = { findById, create, listByAdvisor, remove };

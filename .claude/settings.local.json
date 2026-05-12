@@ -3,7 +3,16 @@
     "allow": [
       "PowerShell(netstat -ano)",
       "PowerShell(Get-Process -Id 5928)",
-      "PowerShell(Get-WmiObject Win32_Process -Filter \"ProcessId=5928\")"
+      "PowerShell(Get-WmiObject Win32_Process -Filter \"ProcessId=5928\")",
+      "Bash(npm install *)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 npm install @prisma/client prisma --save-dev)",
+      "Bash(npm --version)",
+      "Bash(yarn --version)",
+      "Bash(npx prisma *)",
+      "Bash(npm uninstall *)",
+      "Bash(node -e ' *)",
+      "Bash(xargs ls -la)",
+      "Bash(docker-compose -f /Users/rafikgharbi/Data/salma/docker-compose.yml up -d --force-recreate postgres)"
     ]
   }
 }

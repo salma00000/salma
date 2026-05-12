@@ -1,15 +1,25 @@
 "use strict";
 
-const pool = require("../db/pool");
+const prisma = require("../db/prisma");
 
 async function findByFactureId(factureId) {
-  const { rows } = await pool.query(
-    `SELECT id, facture_id, nom_article, description, quantite, prix_unitaire, sous_total,
-            product_sku, product_brand, product_category, warranty_months
-     FROM articles WHERE facture_id = $1 ORDER BY id ASC`,
-    [factureId],
-  );
-  return rows;
+  return prisma.article.findMany({
+    where: { facture_id: factureId },
+    select: {
+      id: true,
+      facture_id: true,
+      nom_article: true,
+      description: true,
+      quantite: true,
+      prix_unitaire: true,
+      sous_total: true,
+      product_sku: true,
+      product_brand: true,
+      product_category: true,
+      warranty_months: true,
+    },
+    orderBy: { id: "asc" },
+  });
 }
 
 module.exports = { findByFactureId };

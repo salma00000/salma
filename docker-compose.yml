@@ -15,8 +15,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
       - ./backend/migrations/002_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
-    # ports:
-    # - "127.0.0.1:5432:5432"
+    ports:
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test:
         [
@@ -45,7 +45,7 @@ services:
       N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
       N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD:-changeme}
       N8N_INTERNAL_KEY: ${N8N_INTERNAL_KEY:-change_this_internal_key_min32chars}
-      CORS_ORIGIN: http://localhost:5173
+      CORS_ORIGIN: http://127.0.0.1:5173
       NODE_ENV: development
     volumes:
       - ./backend:/app

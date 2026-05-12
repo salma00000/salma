@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Advisor {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String       @unique
+  password_hash String
+  full_name     String
+  created_at    DateTime     @default(now()) @db.Timestamp(6)
+  sessions      SavSession[]
+
+  @@map("advisors")
+}
+
+model Facture {
+  id                  Int         @id @default(autoincrement())
+  numero_facture      String      @unique @db.VarChar(30)
+  client_nom          String      @db.VarChar(150)
+  client_email        String?     @db.VarChar(200)
+  client_phone        String?     @db.VarChar(30)
+  client_loyalty_tier String?     @db.VarChar(20)
+  customer_id         String?     @db.VarChar(30)
+  date_creation       DateTime    @default(now()) @db.Timestamp(6)
+  date_echeance       DateTime?   @db.Date
+  montant_ht          Decimal     @default(0.00) @db.Decimal(12, 2)
+  taux_tva            Decimal     @default(20.00) @db.Decimal(5, 2)
+  /// Generated always as ROUND(montant_ht * taux_tva / 100, 2)
+  montant_tva         Decimal     @db.Decimal(12, 2)
+  /// Generated always as ROUND(montant_ht * (1 + taux_tva / 100), 2)
+  montant_total       Decimal     @db.Decimal(12, 2)
+  statut              String      @default("En attente") @db.VarChar(30)
+  store               String?     @db.VarChar(150)
+  notes               String?
+  created_at          DateTime    @default(now()) @db.Timestamp(6)
+  updated_at          DateTime    @default(now()) @db.Timestamp(6)
+  articles            Article[]
+  sav_tickets         SavTicket[]
+
+  @@map("factures")
+}
+
+model Article {
+  id               Int      @id @default(autoincrement())
+  facture_id       Int
+  nom_article      String   @db.VarChar(200)
+  description      String?
+  quantite         Decimal  @default(1) @db.Decimal(10, 3)
+  prix_unitaire    Decimal  @db.Decimal(12, 2)
+  /// Generated always as ROUND(quantite * prix_unitaire, 2)
+  sous_total       Decimal  @db.Decimal(14, 2)
+  product_sku      String?  @db.VarChar(100)
+  product_brand    String?  @db.VarChar(100)
+  product_category String?  @db.VarChar(100)
+  warranty_months  Int?
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  facture          Facture  @relation(fields: [facture_id], references: [id], onDelete: Cascade)
+
+  @@map("articles")
+}
+
+model SavTicket {
+  id                Int       @id @default(autoincrement())
+  ticket_id         String    @unique @db.VarChar(30)
+  facture_id        Int?
+  numero_facture    String?   @db.VarChar(30)
+  client_nom        String?   @db.VarChar(150)
+  client_email      String?   @db.VarChar(200)
+  order_date        DateTime? @db.Timestamp(6)
+  issue_description String
+  status            String    @default("open") @db.VarChar(20)
+  priority          String    @default("medium") @db.VarChar(10)
+  ai_summary        String?
+  created_at        DateTime  @default(now()) @db.Timestamp(6)
+  updated_at        DateTime  @default(now()) @db.Timestamp(6)
+  facture           Facture?  @relation(fields: [facture_id], references: [id], onDelete: SetNull)
+
+  @@map("sav_tickets")
+}
+
+model SavSession {
+  session_id String       @id
+  draft      Json?
+  turn       Int          @default(0)
+  advisor_id String?      @db.Uuid
+  updated_at DateTime     @default(now()) @db.Timestamp(6)
+  advisor    Advisor?     @relation(fields: [advisor_id], references: [id])
+  messages   SavMessage[]
+
+  @@map("sav_sessions")
+}
+
+model SavMessage {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id String
+  role       String
+  content    String
+  created_at DateTime   @default(now()) @db.Timestamp(6)
+  session    SavSession @relation(fields: [session_id], references: [session_id], onDelete: Cascade)
+
+  @@map("sav_messages")
+}

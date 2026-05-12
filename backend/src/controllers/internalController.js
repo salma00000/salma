@@ -1,6 +1,7 @@
 "use strict";
 
-const pool = require("../db/pool");
+const prisma = require("../db/prisma");
+const { Prisma } = require("@prisma/client");
 
 const EMPTY_DRAFT = {
   customer: {},
@@ -15,16 +16,15 @@ const EMPTY_DRAFT = {
 
 /**
  * GET /api/internal/sessions/:sessionId
- * Returns the session row, or {} if not found (mirrors PG Load Session alwaysOutputData behaviour).
  */
 async function getSession(req, res, next) {
   try {
     const { sessionId } = req.params;
-    const { rows } = await pool.query(
-      "SELECT session_id, draft, turn, updated_at FROM sav_sessions WHERE session_id = $1",
-      [sessionId],
-    );
-    res.json(rows[0] || {});
+    const session = await prisma.savSession.findUnique({
+      where: { session_id: sessionId },
+      select: { session_id: true, draft: true, turn: true, updated_at: true },
+    });
+    res.json(session || {});
   } catch (err) {
     next(err);
   }
@@ -37,15 +37,13 @@ async function getSession(req, res, next) {
 async function upsertSession(req, res, next) {
   try {
     const { sessionId } = req.params;
-    const { rows } = await pool.query(
-      `INSERT INTO sav_sessions (session_id, draft, turn, updated_at)
-       VALUES ($1, $2::jsonb, 1, NOW())
-       ON CONFLICT (session_id)
-       DO UPDATE SET turn = sav_sessions.turn + 1, updated_at = NOW()
-       RETURNING session_id, draft, turn`,
-      [sessionId, JSON.stringify(EMPTY_DRAFT)],
-    );
-    res.json(rows[0]);
+    const result = await prisma.savSession.upsert({
+      where: { session_id: sessionId },
+      create: { session_id: sessionId, draft: EMPTY_DRAFT, turn: 1 },
+      update: { turn: { increment: 1 }, updated_at: new Date() },
+      select: { session_id: true, draft: true, turn: true },
+    });
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -53,8 +51,6 @@ async function upsertSession(req, res, next) {
 
 /**
  * PATCH /api/internal/sessions/:sessionId/draft
- * Update the draft JSONB column (mirrors PG Save Session / PG Save Final).
- * Body: { draft: <object> }
  */
 async function updateDraft(req, res, next) {
   try {
@@ -65,15 +61,22 @@ async function updateDraft(req, res, next) {
         .status(400)
         .json({ error: "Body must contain a draft object" });
     }
-    const { rows } = await pool.query(
-      `UPDATE sav_sessions
-       SET draft = $1::jsonb, updated_at = NOW()
-       WHERE session_id = $2
-       RETURNING session_id, draft, turn`,
-      [JSON.stringify(draft), sessionId],
-    );
-    if (!rows[0]) return res.status(404).json({ error: "Session not found" });
-    res.json(rows[0]);
+    try {
+      const result = await prisma.savSession.update({
+        where: { session_id: sessionId },
+        data: { draft, updated_at: new Date() },
+        select: { session_id: true, draft: true, turn: true },
+      });
+      res.json(result);
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2025"
+      ) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      throw err;
+    }
   } catch (err) {
     next(err);
   }
@@ -81,8 +84,7 @@ async function updateDraft(req, res, next) {
 
 /**
  * PATCH /api/internal/sessions/:sessionId/status
- * Update only the status field inside the draft JSONB.
- * Body: { status: "ticket_created" | "cancelled" | ... }
+ * Uses jsonb_set — requires raw query since Prisma doesn't support JSONB operators.
  */
 async function updateStatus(req, res, next) {
   try {
@@ -93,14 +95,13 @@ async function updateStatus(req, res, next) {
         .status(400)
         .json({ error: "Body must contain a status string" });
     }
-    const { rows } = await pool.query(
-      `UPDATE sav_sessions
-       SET draft = jsonb_set(COALESCE(draft, '{}'), '{status}', $1::jsonb),
-           updated_at = NOW()
-       WHERE session_id = $2
-       RETURNING session_id, draft, turn`,
-      [JSON.stringify(status), sessionId],
-    );
+    const rows = await prisma.$queryRaw`
+      UPDATE sav_sessions
+      SET draft = jsonb_set(COALESCE(draft, '{}'), '{status}', ${JSON.stringify(status)}::jsonb),
+          updated_at = NOW()
+      WHERE session_id = ${sessionId}
+      RETURNING session_id, draft, turn
+    `;
     if (!rows[0]) return res.status(404).json({ error: "Session not found" });
     res.json(rows[0]);
   } catch (err) {
@@ -110,14 +111,11 @@ async function updateStatus(req, res, next) {
 
 /**
  * DELETE /api/internal/sessions/:sessionId
- * Remove the session row.
  */
 async function deleteSession(req, res, next) {
   try {
     const { sessionId } = req.params;
-    await pool.query("DELETE FROM sav_sessions WHERE session_id = $1", [
-      sessionId,
-    ]);
+    await prisma.savSession.delete({ where: { session_id: sessionId } });
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -126,8 +124,6 @@ async function deleteSession(req, res, next) {
 
 /**
  * POST /api/internal/tickets
- * Create a SAV ticket from draft data and mark the session as ticket_created.
- * Body: { ticketId, sessionId, draft }
  */
 async function createTicketFromDraft(req, res, next) {
   try {
@@ -138,15 +134,14 @@ async function createTicketFromDraft(req, res, next) {
         .json({ error: "ticketId, sessionId and draft are required" });
     }
 
-    // Optional: resolve the integer facture PK from numero_facture
     let factureId = null;
     const invoiceRef = draft.purchase?.invoice_id;
     if (invoiceRef) {
-      const { rows: fRows } = await pool.query(
-        "SELECT id FROM factures WHERE numero_facture = $1 LIMIT 1",
-        [String(invoiceRef)],
-      );
-      if (fRows.length) factureId = fRows[0].id;
+      const facture = await prisma.facture.findUnique({
+        where: { numero_facture: String(invoiceRef) },
+        select: { id: true },
+      });
+      if (facture) factureId = facture.id;
     }
 
     const issueDesc =
@@ -156,34 +151,30 @@ async function createTicketFromDraft(req, res, next) {
         .filter(Boolean)
         .join(": ") || null;
 
-    const { rows } = await pool.query(
-      `INSERT INTO sav_tickets
-         (ticket_id, facture_id, numero_facture, client_nom, client_email,
-          order_date, issue_description, status, priority, ai_summary)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'open', 'medium', $8)
-       RETURNING ticket_id, created_at`,
-      [
-        ticketId,
-        factureId,
-        invoiceRef ? String(invoiceRef) : null,
-        draft.customer?.name || null,
-        draft.customer?.email || null,
-        draft.purchase?.date || null,
-        issueDesc,
-        aiSummary,
-      ],
-    );
+    const ticket = await prisma.savTicket.create({
+      data: {
+        ticket_id: ticketId,
+        facture_id: factureId,
+        numero_facture: invoiceRef ? String(invoiceRef) : null,
+        client_nom: draft.customer?.name || null,
+        client_email: draft.customer?.email || null,
+        order_date: draft.purchase?.date ? new Date(draft.purchase.date) : null,
+        issue_description: issueDesc,
+        status: "open",
+        priority: "medium",
+        ai_summary: aiSummary,
+      },
+      select: { ticket_id: true, created_at: true },
+    });
 
-    // Mark session as ticket_created so the frontend polling detects it
-    await pool.query(
-      `UPDATE sav_sessions
-       SET draft = jsonb_set(COALESCE(draft, '{}'), '{status}', '"ticket_created"'),
-           updated_at = NOW()
-       WHERE session_id = $1`,
-      [sessionId],
-    );
+    await prisma.$executeRaw`
+      UPDATE sav_sessions
+      SET draft = jsonb_set(COALESCE(draft, '{}'), '{status}', '"ticket_created"'),
+          updated_at = NOW()
+      WHERE session_id = ${sessionId}
+    `;
 
-    res.status(201).json(rows[0]);
+    res.status(201).json(ticket);
   } catch (err) {
     next(err);
   }

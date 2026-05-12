@@ -1,6 +1,6 @@
 "use strict";
 
-const pool = require("../db/pool");
+const prisma = require("../db/prisma");
 
 async function insert({
   ticket_id,
@@ -14,74 +14,88 @@ async function insert({
   priority,
   ai_summary,
 }) {
-  const { rows } = await pool.query(
-    `INSERT INTO sav_tickets
-       (ticket_id, facture_id, numero_facture, client_nom, client_email,
-        order_date, issue_description, status, priority, ai_summary)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-    [
+  return prisma.savTicket.create({
+    data: {
       ticket_id,
-      facture_id,
-      numero_facture,
-      client_nom,
-      client_email,
-      order_date,
+      facture_id: facture_id ?? null,
+      numero_facture: numero_facture ?? null,
+      client_nom: client_nom ?? null,
+      client_email: client_email ?? null,
+      order_date: order_date ? new Date(order_date) : null,
       issue_description,
-      status,
-      priority,
-      ai_summary,
-    ],
-  );
-  return rows[0];
+      status: status || "open",
+      priority: priority || "medium",
+      ai_summary: ai_summary ?? null,
+    },
+  });
 }
 
 async function findAll({ status, priority } = {}) {
-  const conditions = [];
-  const params = [];
-  let idx = 1;
+  const tickets = await prisma.savTicket.findMany({
+    where: {
+      ...(status && { status }),
+      ...(priority && { priority }),
+    },
+    select: {
+      ticket_id: true,
+      facture_id: true,
+      numero_facture: true,
+      client_nom: true,
+      issue_description: true,
+      status: true,
+      priority: true,
+      created_at: true,
+      facture: { select: { montant_total: true } },
+    },
+    orderBy: { created_at: "desc" },
+    take: 50,
+  });
 
-  if (status) {
-    conditions.push(`t.status = $${idx++}`);
-    params.push(status);
-  }
-  if (priority) {
-    conditions.push(`t.priority = $${idx++}`);
-    params.push(priority);
-  }
-
-  const whereClause = conditions.length
-    ? `WHERE ${conditions.join(" AND ")}`
-    : "";
-
-  const { rows } = await pool.query(
-    `SELECT t.ticket_id, t.facture_id, t.numero_facture, t.client_nom,
-            t.issue_description, t.status, t.priority, t.created_at, f.montant_total
-     FROM sav_tickets t LEFT JOIN factures f ON f.id = t.facture_id
-     ${whereClause}
-     ORDER BY t.created_at DESC LIMIT 50`,
-    params,
-  );
-
-  return rows;
+  return tickets.map(({ facture, ...t }) => ({
+    ...t,
+    montant_total: facture?.montant_total ?? null,
+  }));
 }
 
 async function findByTicketId(ticketId) {
-  const { rows } = await pool.query(
-    `SELECT t.*, f.montant_ht, f.montant_tva, f.montant_total,
-            f.date_echeance, f.statut AS invoice_status, f.notes AS facture_notes
-     FROM sav_tickets t LEFT JOIN factures f ON f.id = t.facture_id
-     WHERE t.ticket_id = $1`,
-    [ticketId],
-  );
-  return rows[0] || null;
+  const ticket = await prisma.savTicket.findUnique({
+    where: { ticket_id: ticketId },
+    include: {
+      facture: {
+        select: {
+          montant_ht: true,
+          montant_tva: true,
+          montant_total: true,
+          date_echeance: true,
+          statut: true,
+          notes: true,
+        },
+      },
+    },
+  });
+  if (!ticket) return null;
+  const { facture, ...rest } = ticket;
+  return {
+    ...rest,
+    montant_ht: facture?.montant_ht ?? null,
+    montant_tva: facture?.montant_tva ?? null,
+    montant_total: facture?.montant_total ?? null,
+    date_echeance: facture?.date_echeance ?? null,
+    invoice_status: facture?.statut ?? null,
+    facture_notes: facture?.notes ?? null,
+  };
 }
 
 async function updateStatus(ticketId, status) {
-  const { rows } = await pool.query(
-    "UPDATE sav_tickets SET status = $1, updated_at = NOW() WHERE ticket_id = $2 RETURNING *",
-    [status, ticketId],
-  );
-  return rows[0] || null;
+  try {
+    return await prisma.savTicket.update({
+      where: { ticket_id: ticketId },
+      data: { status, updated_at: new Date() },
+    });
+  } catch (err) {
+    if (err.code === "P2025") return null;
+    throw err;
+  }
 }
 
 module.exports = { insert, findAll, findByTicketId, updateStatus };

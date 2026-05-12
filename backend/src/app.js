@@ -19,7 +19,7 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
-const pool = require("./db/pool");
+const prisma = require("./db/prisma");
 const errorHandler = require("./middleware/errorHandler");
 const requireAuth = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
@@ -49,7 +49,7 @@ app.use((req, _res, next) => {
 
 app.get("/health", async (_req, res) => {
   try {
-    await pool.query("SELECT 1");
+    await prisma.$queryRaw`SELECT 1`;
     res.json({
       status: "ok",
       database: "connected",
@@ -72,6 +72,34 @@ app.use("/api-docs", swaggerRouter);
 
 app.use(errorHandler);
 
+// Split SQL into individual statements, treating $$...$$  dollar-quoted blocks
+// (used in PL/pgSQL function bodies) as opaque — they may contain semicolons.
+function splitSQLStatements(sql) {
+  const stmts = [];
+  const parts = sql.split("$$");
+  let current = "";
+
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      // Outside dollar-quote: split on semicolons
+      const segments = parts[i].split(";");
+      for (let j = 0; j < segments.length - 1; j++) {
+        const stmt = (current + segments[j]).trim();
+        if (stmt) stmts.push(stmt);
+        current = "";
+      }
+      current += segments[segments.length - 1];
+    } else {
+      // Inside dollar-quote: treat as opaque text
+      current += "$$" + parts[i] + "$$";
+    }
+  }
+
+  const last = current.trim();
+  if (last) stmts.push(last);
+  return stmts.filter((s) => s.trim().length > 0);
+}
+
 async function runMigrations() {
   const migrationsDir = path.join(__dirname, "../migrations");
   const files = fs
@@ -80,21 +108,28 @@ async function runMigrations() {
     .sort();
   for (const file of files) {
     const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
-    await pool.query(sql);
+    const statements = splitSQLStatements(sql);
+    for (const stmt of statements) {
+      await prisma.$executeRawUnsafe(stmt);
+    }
     console.log(`Migration exécutée: ${file}`);
   }
 }
 
 async function seedAdvisor() {
-  const { rows } = await pool.query(
-    "SELECT id FROM advisors WHERE email = 'advisor@sav.com'",
-  );
-  if (rows.length) return;
+  const existing = await prisma.advisor.findUnique({
+    where: { email: "advisor@sav.com" },
+    select: { id: true },
+  });
+  if (existing) return;
   const hash = await bcrypt.hash("password123", 10);
-  await pool.query(
-    `INSERT INTO advisors (email, password_hash, full_name) VALUES ('advisor@sav.com', $1, 'Test Advisor') ON CONFLICT DO NOTHING`,
-    [hash],
-  );
+  await prisma.advisor.create({
+    data: {
+      email: "advisor@sav.com",
+      password_hash: hash,
+      full_name: "Test Advisor",
+    },
+  });
   console.log("Conseiller de test créé: advisor@sav.com / password123");
 }
 
@@ -112,6 +147,6 @@ start().catch((err) => {
   process.exit(1);
 });
 
-process.on("SIGTERM", () => pool.end());
+process.on("SIGTERM", () => prisma.$disconnect());
 
 module.exports = app;

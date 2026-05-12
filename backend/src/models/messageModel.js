@@ -1,21 +1,18 @@
 "use strict";
 
-const pool = require("../db/pool");
+const prisma = require("../db/prisma");
 
 async function findBySession(sessionId) {
-  const { rows } = await pool.query(
-    "SELECT * FROM sav_messages WHERE session_id = $1 ORDER BY created_at ASC",
-    [sessionId],
-  );
-  return rows;
+  return prisma.savMessage.findMany({
+    where: { session_id: sessionId },
+    orderBy: { created_at: "asc" },
+  });
 }
 
 async function insert(sessionId, role, content) {
-  const { rows } = await pool.query(
-    "INSERT INTO sav_messages (session_id, role, content) VALUES ($1, $2, $3) RETURNING *",
-    [sessionId, role, content],
-  );
-  return rows[0];
+  return prisma.savMessage.create({
+    data: { session_id: sessionId, role, content },
+  });
 }
 
 module.exports = { findBySession, insert };

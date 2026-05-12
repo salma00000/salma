@@ -1,20 +1,16 @@
 "use strict";
 
-const pool = require("../db/pool");
+const prisma = require("../db/prisma");
 
 async function findByEmail(email) {
-  const { rows } = await pool.query("SELECT * FROM advisors WHERE email = $1", [
-    email,
-  ]);
-  return rows[0] || null;
+  return prisma.advisor.findUnique({ where: { email } });
 }
 
 async function findById(id) {
-  const { rows } = await pool.query(
-    "SELECT id, email, full_name, created_at FROM advisors WHERE id = $1",
-    [id],
-  );
-  return rows[0] || null;
+  return prisma.advisor.findUnique({
+    where: { id },
+    select: { id: true, email: true, full_name: true, created_at: true },
+  });
 }
 
 module.exports = { findByEmail, findById };
