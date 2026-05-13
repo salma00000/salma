@@ -1,5 +1,5 @@
 {
-  "name": "SAV Assistant - POC (Q/R)- corrigé",
+  "name": "SAV Assistant - POC (Q/R)- corrigéR",
   "nodes": [
     {
       "parameters": {
@@ -10,10 +10,10 @@
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.4,
       "position": [
-        -2720,
-        1072
+        -1904,
+        480
       ],
-      "id": "5e22ce2e-64fc-4ba7-8cdd-3f7bb3367023",
+      "id": "3d69017b-8894-4af4-8ec8-0d42725b16b9",
       "name": "When chat message received",
       "webhookId": "c88c52a0-fa1e-4bec-9b40-11d2a06585bf"
     },
@@ -24,38 +24,38 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2544,
-        1072
+        -1728,
+        480
       ],
-      "id": "d9933e4b-3021-4280-9bb6-371ce334434f",
+      "id": "14fc1f96-fd7d-4594-ab0f-37b382e57e93",
       "name": "Load Session State"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Tu es un assistant d'extraction pour un service SAV.\n\nÀ partir du message d'un conseiller, extrait les informations disponibles et retourne UNIQUEMENT un objet JSON valide (pas de texte avant/après, pas de markdown), selon ce schéma exact :\n\n{\n\"intent\": \"new_sav | validate | cancel | other\",\n\"invoice_id\": \"string ou null\",\n\"customer_name\": \"string ou null\",\n\"product_type\": \"string ou null\",\n\"product_brand\": \"string ou null\",\n\"issue_type\": \"fuite | panne_electrique | casse | bruit | ne_demarre_pas | autre | null\",\n\"issue_description\": \"string ou null\",\n\"context\": \"string ou null\",\n\"confidence\": 0.0,\n\"needs_review\": false\n}\n\nRÈGLES D'INTENTION :\n\n* \"validate\" :\n  uniquement si le conseiller valide explicitement le dossier :\n  \"ok\", \"oui\", \"valide\", \"je valide\", \"créer le dossier\", \"confirme\".\n  IMPORTANT : uniquement si le draft contient déjà des informations.\n\n* \"cancel\" :\n  si le conseiller annule/refuse :\n  \"annuler\", \"annule\", \"stop\", \"recommencer\", \"abandon\".\n\n* \"new_sav\" :\n  cas par défaut dès que le message contient une information exploitable pour le dossier SAV :\n  produit, marque, panne, facture, description, réponse courte ou valeur de champ.\n\n  Exemples :\n\n  * \"Bosch\"\n  * \"Samsung\"\n  * \"Machine à laver\"\n  * \"Création logo\"\n  * \"Déclinaisons couleurs\"\n  * \"Livraison fichiers sources\"\n  * \"fuite lave-linge\"\n  * \"ça fuit\"\n  * \"ne démarre plus\"\n\n  Même un message très court doit être considéré comme \"new_sav\"\n  s'il peut compléter le draft actuel.\n\n* \"other\" :\n  uniquement si le message est hors sujet ou totalement inexploitable.\n\nRÈGLE ABSOLUE — PRIORITÉ MAXIMALE :\nSi \"last_asked_field\" dans le draft est NON NULL, le conseiller est en train de répondre\nà une question directe que l'assistant vient de poser.\n→ L'intent est OBLIGATOIREMENT \"new_sav\", sans AUCUNE exception.\n→ Le message est la réponse attendue pour ce champ. Extrait-en la valeur même si elle\n  semble hors du domaine électroménager (le produit peut être un service ou article atypique).\n→ Ne JAMAIS retourner \"other\" quand last_asked_field est NON NULL.\n\nIMPORTANT :\nEn cas d'hésitation entre \"new_sav\" et \"other\", choisir TOUJOURS \"new_sav\".\n\nRÈGLES D'EXTRACTION :\n\n* Si un champ n'est pas mentionné → null\n* Ne jamais inventer\n* \"facture FAC-1234\" → invoice_id = \"FAC-1234\"\n* \"fuite\" → issue_type = \"fuite\"\n* needs_review = true si confidence < 0.7\n\nDraft actuel :\n{{ JSON.stringify($json.session.draft) }}\n\nDernier champ demandé au conseiller (contexte pour interpréter les réponses courtes) :\n{{ $json.session.draft.last_asked_field ? `\"${$json.session.draft.last_asked_field.label}\" (${$json.session.draft.last_asked_field.path})` : 'aucun' }}\n\nMessage du conseiller :\n\"{{ $json.message }}\"\n\nRéponds UNIQUEMENT avec le JSON.",
+        "text": "=Tu es un assistant d'extraction pour un service SAV.\n\nÀ partir du message d'un conseiller, extrait les informations disponibles et retourne UNIQUEMENT un objet JSON valide (pas de texte avant/après, pas de markdown), selon ce schéma exact :\n\n{\n\"intent\": \"new_sav | validate | cancel | other\",\n\"invoice_id\": \"string ou null\",\n\"customer_name\": \"string ou null\",\n\"product_type\": \"string ou null\",\n\"product_name\": \"string ou null\",\n\"product_brand\": \"string ou null\",\n\"issue_type\": \"fuite | panne_electrique | casse | bruit | ne_demarre_pas | autre | null\",\n\"issue_description\": \"string ou null\",\n\"context\": \"string ou null\",\n\"confidence\": 0.0,\n\"needs_review\": false\n}\n\nRÈGLES D'INTENTION :\n\n* \"validate\" :\n  uniquement si le conseiller valide explicitement le dossier :\n  \"ok\", \"oui\", \"valide\", \"je valide\", \"créer le dossier\", \"confirme\".\n  IMPORTANT : uniquement si le draft contient déjà des informations.\n\n* \"cancel\" :\n  si le conseiller annule/refuse :\n  \"annuler\", \"annule\", \"stop\", \"recommencer\", \"abandon\".\n\n* \"new_sav\" :\n  cas par défaut dès que le message contient une information exploitable pour le dossier SAV :\n  produit, marque, panne, facture, description, réponse courte ou valeur de champ.\n\n  Exemples :\n\n  * \"Bosch\"\n  * \"Samsung\"\n  * \"Machine à laver\"\n  * \"Création logo\"\n  * \"Déclinaisons couleurs\"\n  * \"Livraison fichiers sources\"\n  * \"fuite lave-linge\"\n  * \"ça fuit\"\n  * \"ne démarre plus\"\n\n  Même un message très court doit être considéré comme \"new_sav\"\n  s'il peut compléter le draft actuel.\n\n* \"other\" :\n  uniquement si le message est hors sujet ou totalement inexploitable.\n\nRÈGLE ABSOLUE — PRIORITÉ MAXIMALE :\nSi \"last_asked_field\" dans le draft est NON NULL, le conseiller est en train de répondre\nà une question directe que l'assistant vient de poser.\n→ L'intent est OBLIGATOIREMENT \"new_sav\", sans AUCUNE exception.\n→ Le message est la réponse attendue pour ce champ. Extrait-en la valeur même si elle\n  semble hors du domaine électroménager (le produit peut être un service ou article atypique).\n→ Ne JAMAIS retourner \"other\" quand last_asked_field est NON NULL.\n→ Si last_asked_field path est product.sku, prendre le message complet de l'utilisateur comme product_name. \n\nIMPORTANT :\nEn cas d'hésitation entre \"new_sav\" et \"other\", choisir TOUJOURS \"new_sav\".\n\nRÈGLES D'EXTRACTION :\n\n* Si un champ n'est pas mentionné → null\n* Ne jamais inventer\n* \"facture F022F078842\" → invoice_id = \"F022F078842\"\n* \"fuite\" → issue_type = \"fuite\"\n* needs_review = true si confidence < 0.7\n\nDraft actuel :\n{{ JSON.stringify($json.session.draft) }}\n\nDernier champ demandé au conseiller (contexte pour interpréter les réponses courtes) :\n{{ $json.session.draft.last_asked_field ? `\"${$json.session.draft.last_asked_field.label}\" (${$json.session.draft.last_asked_field.path})` : 'aucun' }}\n\nMessage du conseiller :\n\"{{ $json.message }}\"\n\nRéponds UNIQUEMENT avec le JSON.",
         "batching": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        -1760,
-        1072
+        -944,
+        480
       ],
-      "id": "94796e26-dc7e-4fa5-b6b9-1ad1df6ba148",
+      "id": "54a78b53-dc75-4305-9bc2-5f1f97901d72",
       "name": "LLM Extract"
     },
     {
       "parameters": {
-        "jsCode": "// --- 1. Parser la sortie du LLM Extract ---\nconst llmOutput = $input.first().json;\n\nlet extracted = null;\n\n// Cas 1 : le Basic LLM Chain retourne directement un objet JSON (quand format:json activé côté Ollama)\nif (llmOutput && typeof llmOutput === 'object' && llmOutput.invoice_id !== undefined) {\n  extracted = llmOutput;\n}\n// Cas 2 : le Basic LLM Chain retourne { text: \"...\" }\nelse if (llmOutput && typeof llmOutput.text === 'string') {\n  try {\n    let raw = llmOutput.text.trim();\n    raw = raw.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '').replace(/^```\\s*/i, '');\n    const firstBrace = raw.indexOf('{');\n    const lastBrace = raw.lastIndexOf('}');\n    if (firstBrace !== -1 && lastBrace !== -1) {\n      raw = raw.substring(firstBrace, lastBrace + 1);\n    }\n    extracted = JSON.parse(raw);\n  } catch (err) {\n    extracted = { confidence: 0, needs_review: true, _parse_error: err.message };\n  }\n}\n\n// Fallback si rien n'est exploitable\nif (!extracted) {\n  extracted = { confidence: 0, needs_review: true };\n}\n\n// --- 2. Récupérer le draft depuis PG Load Session et le userMessage ---\nconst pgSession = $('Merge Session').first().json.session;\nconst loadState = $('Load Session State').first().json;\n\nconst sessionId = pgSession.session_id;\nconst turn = pgSession.turn;\nconst draft = JSON.parse(JSON.stringify(pgSession.draft));\n\n// Garantir la structure minimale du draft (si Postgres retourne un truc partiel)\ndraft.customer = draft.customer || {};\ndraft.product = draft.product || {};\ndraft.invoice = draft.invoice || {};\ndraft.issue = draft.issue || {};\ndraft.history = draft.history || [];\ndraft.missing_fields = draft.missing_fields || [];\ndraft.warnings = draft.warnings || [];\ndraft.status = draft.status || \"draft\";\n\n// --- 2b. Guardrail: if advisor was answering a direct question, force new_sav\n//     regardless of LLM classification. This prevents domain-knowledge overrides.\nconst lastAskedField = pgSession.draft?.last_asked_field;\nif (lastAskedField && (!extracted.intent || extracted.intent === 'other')) {\n  const reply = (loadState.userMessage || '').trim();\n  extracted.intent = 'new_sav';\n  if (reply) {\n    const p = lastAskedField.path;\n    if (p.startsWith('product'))        extracted.product_type      = extracted.product_type      || reply;\n    else if (p === 'issue.type')         extracted.issue_type        = extracted.issue_type        || reply;\n    else if (p === 'issue.description')  extracted.issue_description = extracted.issue_description || reply;\n    else if (p === 'customer.name')      extracted.customer_name     = extracted.customer_name     || reply;\n    else if (p === 'invoice.invoice_number') extracted.invoice_id       = extracted.invoice_id        || reply;\n  }\n}\n\n// --- 3. Merge non-destructif ---\nif (extracted.invoice_id) {\n  draft.invoice.invoice_number = String(extracted.invoice_id);\n}\nif (extracted.product_type && !draft.product.category) {\n  draft.product.category = extracted.product_type;\n}\nif (extracted.product_brand && !draft.product.brand) {\n  draft.product.brand = extracted.product_brand;\n}\nif (extracted.issue_type && !draft.issue.type) {\n  draft.issue.type = extracted.issue_type;\n}\nif (extracted.issue_description && !draft.issue.description) {\n  draft.issue.description = extracted.issue_description;\n}\nif (extracted.customer_name && !draft.customer.name) {\n  draft.customer.name = extracted.customer_name;\n}\nif (extracted.context && !draft.issue.context) {\n  draft.issue.context = extracted.context;\n}\n\n// --- 4. Sortir le draft fusionné ---\nreturn [{\n  json: {\n    sessionId,\n    userMessage: loadState.userMessage,\n    draft,\n    extraction: extracted,\n    intent: extracted?.intent || 'new_sav',\n    turn\n  }\n}];"
+        "jsCode": "// --- 1. Parser la sortie du LLM Extract ---\nconst llmOutput = $input.first().json;\n\nlet extracted = null;\n\n// Cas 1 : le Basic LLM Chain retourne directement un objet JSON (quand format:json activé côté Ollama)\nif (llmOutput && typeof llmOutput === 'object' && llmOutput.invoice_id !== undefined) {\n  extracted = llmOutput;\n}\n// Cas 2 : le Basic LLM Chain retourne { text: \"...\" }\nelse if (llmOutput && typeof llmOutput.text === 'string') {\n  try {\n    let raw = llmOutput.text.trim();\n    raw = raw.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '').replace(/^```\\s*/i, '');\n    const firstBrace = raw.indexOf('{');\n    const lastBrace = raw.lastIndexOf('}');\n    if (firstBrace !== -1 && lastBrace !== -1) {\n      raw = raw.substring(firstBrace, lastBrace + 1);\n    }\n    extracted = JSON.parse(raw);\n  } catch (err) {\n    extracted = { confidence: 0, needs_review: true, _parse_error: err.message };\n  }\n}\n\n// Fallback si rien n'est exploitable\nif (!extracted) {\n  extracted = { confidence: 0, needs_review: true };\n}\n\n// --- 2. Récupérer le draft depuis PG Load Session et le userMessage ---\nconst pgSession = $('Merge Session').first().json.session;\nconst loadState = $('Load Session State').first().json;\n\nconst sessionId = pgSession.session_id;\nconst turn = pgSession.turn;\nconst draft = JSON.parse(JSON.stringify(pgSession.draft));\n\n// Garantir la structure minimale du draft (si Postgres retourne un truc partiel)\ndraft.customer = draft.customer || {};\ndraft.product = draft.product || {};\ndraft.invoice = draft.invoice || {};\ndraft.issue = draft.issue || {};\ndraft.history = draft.history || [];\ndraft.missing_fields = draft.missing_fields || [];\ndraft.warnings = draft.warnings || [];\ndraft.status = draft.status || \"draft\";\n\n// --- 2b. Guardrail: if advisor was answering a direct question, force new_sav\n//     regardless of LLM classification. This prevents domain-knowledge overrides.\nconst lastAskedField = pgSession.draft?.last_asked_field;\nif (lastAskedField && (!extracted.intent || extracted.intent === 'other')) {\n  const reply = (loadState.userMessage || '').trim();\n  extracted.intent = 'new_sav';\n  if (reply) {\n    const p = lastAskedField.path;\n    if (p.startsWith('product'))        extracted.product_type      = extracted.product_type      || reply;\n    else if (p === 'issue.type')         extracted.issue_type        = extracted.issue_type        || reply;\n    else if (p === 'issue.description')  extracted.issue_description = extracted.issue_description || reply;\n    else if (p === 'customer.name')      extracted.customer_name     = extracted.customer_name     || reply;\n    else if (p === 'invoice.invoice_number') extracted.invoice_id       = extracted.invoice_id        || reply;\n  }\n}\n\n// --- 3. Merge non-destructif ---\nif (extracted.invoice_id) {\n  draft.invoice.invoice_number = String(extracted.invoice_id);\n}\nif (extracted.product_type) {\n  draft.product.category = extracted.product_type;\n}\nif (extracted.product_brand) {\n  draft.product.brand = extracted.product_brand;\n}\nif (extracted.product_name) {\n  draft.product.label = extracted.product_name;\n}\nif (extracted.issue_type) {\n  draft.issue.type = extracted.issue_type;\n}\nif (extracted.issue_description) {\n  draft.issue.description = extracted.issue_description;\n}\nif (extracted.customer_name) {\n  draft.customer.name = extracted.customer_name;\n}\nif (extracted.context) {\n  draft.issue.context = extracted.context;\n}\n\n// --- 4. Sortir le draft fusionné ---\nreturn [{\n  json: {\n    sessionId,\n    userMessage: loadState.userMessage,\n    draft,\n    extraction: extracted,\n    intent: extracted?.intent || 'new_sav',\n    turn\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1472,
-        1072
+        -656,
+        480
       ],
-      "id": "81d77996-a4fb-443e-b4ec-b1f581d29a4c",
+      "id": "36d13507-3366-4bbc-939c-2ab848f30667",
       "name": "Merge Draft"
     },
     {
@@ -86,10 +86,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -720,
-        1072
+        96,
+        480
       ],
-      "id": "162c25d8-dacb-47e3-abf7-d6e6b261a761",
+      "id": "ff8cf09f-36d1-41bd-9813-9779061cd626",
       "name": "Has Invoice?"
     },
     {
@@ -99,10 +99,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -512,
-        976
+        304,
+        384
       ],
-      "id": "8dd4d40a-3744-44a3-bd5d-394af36e9929",
+      "id": "b1887e99-e1c3-4e5a-a55f-475e9befcd35",
       "name": "Get Invoice"
     },
     {
@@ -112,23 +112,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -320,
-        704
+        496,
+        112
       ],
-      "id": "0f5ddc97-1bde-4259-9770-850d2a53450d",
+      "id": "d2a43c62-208b-451f-8a10-8e45c49e9d4d",
       "name": "Get Customer"
     },
     {
       "parameters": {
-        "jsCode": "/**\n * Calculate similarity percentage between two strings\n * using Levenshtein Distance\n */\nfunction similarity(str1, str2) {\n  // Normalize strings\n  const s1 = str1.toLowerCase().trim();\n  const s2 = str2.toLowerCase().trim();\n\n  // Early return\n  if (s1 === s2) return 100;\n\n  const longer = s1.length > s2.length ? s1 : s2;\n  const shorter = s1.length > s2.length ? s2 : s1;\n\n  const distance = levenshteinDistance(longer, shorter);\n\n  return Number(\n    (((longer.length - distance) / longer.length) * 100).toFixed(2)\n  );\n}\n\nfunction levenshteinDistance(a, b) {\n  const matrix = [];\n\n  // Initialize first row/column\n  for (let i = 0; i <= b.length; i++) {\n    matrix[i] = [i];\n  }\n\n  for (let j = 0; j <= a.length; j++) {\n    matrix[0][j] = j;\n  }\n\n  // Fill matrix\n  for (let i = 1; i <= b.length; i++) {\n    for (let j = 1; j <= a.length; j++) {\n      if (b.charAt(i - 1) === a.charAt(j - 1)) {\n        matrix[i][j] = matrix[i - 1][j - 1];\n      } else {\n        matrix[i][j] = Math.min(\n          matrix[i - 1][j - 1] + 1, // substitution\n          matrix[i][j - 1] + 1,     // insertion\n          matrix[i - 1][j] + 1      // deletion\n        );\n      }\n    }\n  }\n\n  return matrix[b.length][a.length];\n}\n\nconst input = $input.all().map((i) => i.json);\nconst draft = $('Get Invoice').first().json.draft;\nconst invoice = $('Get Invoice').first().json.data.find((i) => i.invoice_number == draft.invoice.invoice_number);\nconst userMessage = $('Load Session State').first().json.userMessage\nconst sku = draft.product.sku;\nlet product = sku ? input.find((i) => i.sku == sku) : null;\nconst results = input.map(product => ({\n  product,\n  similarity: similarity(userMessage, product.label)\n}));\n\nresults.sort((a, b) => b.similarity - a.similarity);\n\nif (results.at(0).similarity > 50) product = results.at(0).product;\n\nif (product) {\n  // Calcul warranty\n  if (invoice && product.warranty_months) {\n    const purchaseDate = new Date(invoice.date);\n    const warrantyEnd = new Date(purchaseDate);\n    warrantyEnd.setMonth(warrantyEnd.getMonth() + product.warranty_months);\n    draft.invoice.warranty_end = warrantyEnd.toISOString().split('T')[0];\n    draft.invoice.under_warranty = new Date() < warrantyEnd;\n  }\n\n  draft.product = {\n    ...product,\n    ...draft.product, // priorité au conseiller\n    sku: product.sku\n  };\n}\n\nreturn [{\n  json: {\n    invoice_products: input,\n    draft,\n    product_found: !!product\n  }\n}];"
+        "jsCode": "/**\n * Calculate similarity percentage between two strings\n * using Levenshtein Distance\n */\nfunction similarity(str1, str2) {\n  // Normalize strings\n  const s1 = str1.toLowerCase().trim();\n  const s2 = str2.toLowerCase().trim();\n\n  // Early return\n  if (s1 === s2) return 100;\n\n  const longer = s1.length > s2.length ? s1 : s2;\n  const shorter = s1.length > s2.length ? s2 : s1;\n\n  const distance = levenshteinDistance(longer, shorter);\n\n  return Number(\n    (((longer.length - distance) / longer.length) * 100).toFixed(2)\n  );\n}\n\nfunction levenshteinDistance(a, b) {\n  const matrix = [];\n\n  // Initialize first row/column\n  for (let i = 0; i <= b.length; i++) {\n    matrix[i] = [i];\n  }\n\n  for (let j = 0; j <= a.length; j++) {\n    matrix[0][j] = j;\n  }\n\n  // Fill matrix\n  for (let i = 1; i <= b.length; i++) {\n    for (let j = 1; j <= a.length; j++) {\n      if (b.charAt(i - 1) === a.charAt(j - 1)) {\n        matrix[i][j] = matrix[i - 1][j - 1];\n      } else {\n        matrix[i][j] = Math.min(\n          matrix[i - 1][j - 1] + 1, // substitution\n          matrix[i][j - 1] + 1,     // insertion\n          matrix[i - 1][j] + 1      // deletion\n        );\n      }\n    }\n  }\n\n  return matrix[b.length][a.length];\n}\n\nconst input = $input.all().map((i) => i.json);\nconst draft = $('Get Invoice').first().json.draft;\nconst invoice = $('Get Invoice').first().json.data.find((i) => i.invoice_number == draft.invoice.invoice_number);\nconst userMessage = $('Load Session State').first().json.userMessage\n\n// Auto-assign SKU when invoice has exactly one product\nlet product;\nif (!draft.product.sku && input.length === 1) {\n  draft.product.sku = input[0].sku;\n  product = input[0];\n} else {\n  const sku = draft.product.sku;\n  product = sku ? input.find((i) => i.sku == sku) : null;\n  const results = input.map(product => ({\n    product,\n    similarity: similarity($('Merge Draft').first().json.extraction.product_name || userMessage, product.label)\n  }));\n  \n  results.sort((a, b) => b.similarity - a.similarity);\n  \n  if (results && results.at(0).similarity > 50) product = results.at(0).product;\n}\n\nif (product) {\n  // Calcul warranty\n  if (invoice && product.warranty_months) {\n    const purchaseDate = new Date(invoice.date);\n    const warrantyEnd = new Date(purchaseDate);\n    warrantyEnd.setMonth(warrantyEnd.getMonth() + product.warranty_months);\n    draft.invoice.warranty_end = warrantyEnd.toISOString().split('T')[0];\n    draft.invoice.under_warranty = new Date() < warrantyEnd;\n  }\n\n  const advisorOverrides = Object.fromEntries(\n    Object.entries(draft.product).filter(([, v]) => v != null)\n  );\n  \n  draft.product = {\n    ...product,\n    ...advisorOverrides,\n    sku: product.sku\n  };\n}\n\nreturn [{\n  json: {\n    invoice_products: input,\n    draft,\n    product_found: !!product\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        0,
-        832
+        816,
+        240
       ],
-      "id": "ee1d4700-5d62-47c3-9d01-0b3be12019a7",
+      "id": "6226637f-b413-4297-bfa2-34c7567f4f73",
       "name": "Get Product"
     },
     {
@@ -138,23 +138,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        144,
-        992
+        960,
+        400
       ],
-      "id": "fa2d40c2-f7b1-4337-b554-66eff32df6f8",
+      "id": "0ecf7167-640b-467e-a5d0-ac5b3b6c8930",
       "name": "Get SAV History"
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst draft = JSON.parse(JSON.stringify(input.draft));\n\n// --- Champs obligatoires pour pouvoir créer le dossier SAV ---\n// askable = true → peut être demandé au conseiller directement\n// askable = false → se remplit automatiquement via les mocks quand la facture est trouvée\nconst required = [\n      {\n        path: \"invoice.invoice_number\",\n        label: \"numéro de facture\",\n        askable: true,\n      },\n      { path: \"issue.type\", label: \"type de panne\", askable: true },\n      {\n        path: \"issue.description\",\n        label: \"description du problème\",\n        askable: true,\n      },\n      { path: \"customer.name\", label: \"nom du client\", askable: true },\n      { path: \"product.sku\", label: \"produit\", askable: true },\n      { path: \"invoice.date\", label: \"date d'achat\", askable: false },\n      { path: \"customer.id\", label: \"identifiant client\", askable: false },\n    ];\n\nconst getByPath = (obj, path) => path.split('.').reduce((o, k) => (o === undefined || o === null) ? undefined : o[k], obj);\n\nconst missing = required\n  .filter(f => {\n    const v = getByPath(draft, f.path);\n    return v === undefined || v === null || v === \"\";\n  })\n  .map(f => ({ path: f.path, label: f.label, askable: f.askable }));\n\n// --- Contrôles de cohérence (warnings non bloquants) ---\nconst warnings = new Set(\n  Array.isArray(draft.warnings) ? draft.warnings : []\n);\n\n// 1. Date achat dans le futur\nif (draft.invoice?.date) {\n  const purchaseDate = new Date(draft.invoice.date);\n  if (purchaseDate > new Date()) {\n    warnings.add(\"Date d'achat incohérente (dans le futur)\");\n  }\n}\n\n// 2. Hors garantie\nif (draft.invoice?.under_warranty === false && draft.invoice?.warranty_end) {\n  warnings.add(`Produit hors garantie depuis le ${draft.invoice.warranty_end} — prévenir le client des frais potentiels`);\n}\n\n// 3. Cohérence panne / produit\nconst issueProductMatch = {\n  \"fuite\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"chauffe-eau\"],\n  \"ne_demarre_pas\":    [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"four\", \"micro-ondes\", \"television\", \"aspirateur\"],\n  \"bruit\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"aspirateur\", \"hotte\"],\n  \"panne_electrique\":  [\"television\", \"four\", \"micro-ondes\", \"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"hotte\"],\n  \"casse\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"television\", \"four\", \"micro-ondes\", \"aspirateur\", \"hotte\"]\n};\n\nif (draft.issue?.type && draft.product?.category) {\n  const validCategories = issueProductMatch[draft.issue.type];\n  if (validCategories && !validCategories.includes(draft.product.category)) {\n    warnings.add(`Panne \"${draft.issue.type}\" inhabituelle pour un \"${draft.product.category}\" — à confirmer avec le conseiller`);\n  }\n}\n\n// 4. Client avec historique récent (< 6 mois) sur le même produit\nif (Array.isArray(draft.history) && draft.history.length > 0 && draft.product?.sku) {\n  const sixMonthsAgo = new Date();\n  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);\n  const recentSameProduct = draft.history.find(h =>\n    h.product_sku === draft.product.sku && new Date(h.date) > sixMonthsAgo\n  );\n  if (recentSameProduct) {\n    warnings.add(`Un SAV récent existe sur ce produit (${recentSameProduct.sav_id} du ${recentSameProduct.date}) — envisager un échange plutôt qu'une réparation`);\n  }\n}\n\n// --- Mise à jour du draft ---\nconst isComplete = () => !missing.some(f => f.askable === true);\ndraft.missing_fields = missing.map(m => m.path);\ndraft.warnings = [...warnings];\ndraft.status = isComplete() ? \"ready_for_submission\" : \"draft\";\n\n// Option C: store the next field being asked so LLM Extract has context next turn\nconst nextAskable = missing.find(f => f.askable);\ndraft.last_asked_field = nextAskable\n  ? { path: nextAskable.path, label: nextAskable.label }\n  : null;\n\nreturn [{\n  json: {\n    sessionId: input.sessionId,\n    userMessage: input.userMessage,\n    draft,\n    missing,\n    warnings: [...warnings],\n    is_complete: isComplete(),\n    turn: input.turn\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\nconst draft = JSON.parse(JSON.stringify(input.draft));\n\n// --- Champs obligatoires pour pouvoir créer le dossier SAV ---\n// askable = true → peut être demandé au conseiller directement\n// askable = false → se remplit automatiquement via les mocks quand la facture est trouvée\nconst required = [\n      {\n        path: \"invoice.invoice_number\",\n        label: \"numéro de facture\",\n        askable: true,\n      },\n      { path: \"product.sku\", label: \"produit\", askable: true },\n      { path: \"issue.type\", label: \"type de panne\", askable: true },\n      {\n        path: \"issue.description\",\n        label: \"description du problème\",\n        askable: true,\n      },\n      { path: \"customer.name\", label: \"nom du client\", askable: true },\n      { path: \"invoice.date\", label: \"date d'achat\", askable: false },\n      { path: \"customer.id\", label: \"identifiant client\", askable: false },\n    ];\n\nconst getByPath = (obj, path) => path.split('.').reduce((o, k) => (o === undefined || o === null) ? undefined : o[k], obj);\n\nconst missing = required\n  .filter(f => {\n    const v = getByPath(draft, f.path);\n    return v === undefined || v === null || v === \"\";\n  })\n  .map(f => ({ path: f.path, label: f.label, askable: f.askable }));\n\n// --- Contrôles de cohérence (warnings non bloquants) ---\nconst warnings = new Set(\n  Array.isArray(draft.warnings) ? draft.warnings : []\n);\n\n// 1. Date achat dans le futur\nif (draft.invoice?.date) {\n  const purchaseDate = new Date(draft.invoice.date);\n  if (purchaseDate > new Date()) {\n    warnings.add(\"Date d'achat incohérente (dans le futur)\");\n  }\n}\n\n// 2. Hors garantie\nif (draft.invoice?.under_warranty === false && draft.invoice?.warranty_end) {\n  warnings.add(`Produit hors garantie depuis le ${draft.invoice.warranty_end} — prévenir le client des frais potentiels`);\n}\n\n// 3. Cohérence panne / produit\nconst issueProductMatch = {\n  \"fuite\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"chauffe-eau\"],\n  \"ne_demarre_pas\":    [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"four\", \"micro-ondes\", \"television\", \"aspirateur\"],\n  \"bruit\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"aspirateur\", \"hotte\"],\n  \"panne_electrique\":  [\"television\", \"four\", \"micro-ondes\", \"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"hotte\"],\n  \"casse\":             [\"lave-linge\", \"lave-vaisselle\", \"refrigerateur\", \"television\", \"four\", \"micro-ondes\", \"aspirateur\", \"hotte\"]\n};\n\nif (draft.issue?.type && draft.product?.category) {\n  const validCategories = issueProductMatch[draft.issue.type];\n  if (validCategories && !validCategories.includes(draft.product.category)) {\n    warnings.add(`Panne \"${draft.issue.type}\" inhabituelle pour un \"${draft.product.category}\" — à confirmer avec le conseiller`);\n  }\n}\n\n// 4. Client avec historique récent (< 6 mois) sur le même produit\nif (Array.isArray(draft.history) && draft.history.length > 0 && draft.product?.sku) {\n  const sixMonthsAgo = new Date();\n  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);\n  const recentSameProduct = draft.history.find(h =>\n    h.product_sku === draft.product.sku && new Date(h.date) > sixMonthsAgo\n  );\n  if (recentSameProduct) {\n    warnings.add(`Un SAV récent existe sur ce produit (${recentSameProduct.sav_id} du ${recentSameProduct.date}) — envisager un échange plutôt qu'une réparation`);\n  }\n}\n\n// --- Mise à jour du draft ---\nconst isComplete = () => !missing.some(f => f.askable === true);\ndraft.missing_fields = missing.map(m => m.path);\ndraft.warnings = [...warnings];\ndraft.status = isComplete() ? \"ready_for_submission\" : \"draft\";\n\n// Option C: store the next field being asked so LLM Extract has context next turn\nconst nextAskable = missing.find(f => f.askable);\ndraft.last_asked_field = nextAskable\n  ? { path: nextAskable.path, label: nextAskable.label }\n  : null;\n\nreturn [{\n  json: {\n    sessionId: input.sessionId,\n    userMessage: input.userMessage,\n    draft,\n    missing,\n    warnings: [...warnings],\n    is_complete: isComplete(),\n    turn: input.turn\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        368,
-        1088
+        1184,
+        496
       ],
-      "id": "e3af8425-7f89-441e-b708-3f235899c7e8",
+      "id": "f31ffa39-9527-43cb-b190-3aa13ea35a60",
       "name": "Validate & Detect Missing"
     },
     {
@@ -185,10 +185,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        960,
-        1088
+        1776,
+        496
       ],
-      "id": "b9dd8d47-e33f-4f07-9ecc-839cdceec723",
+      "id": "53a9f82d-4edb-43b8-b0d9-8d89655ea0c0",
       "name": "Is Complete?"
     },
     {
@@ -200,25 +200,25 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        1168,
-        928
+        1984,
+        336
       ],
-      "id": "fe18b4b1-3971-4a2b-864d-fe93f1087b69",
+      "id": "17bef90c-1546-4ca3-8dee-0db3804133c5",
       "name": "LLM Recap"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Tu es un assistant SAV de magasin. Tu parles à un conseiller en magasin.\n\nLe dossier SAV est en cours de création mais il manque des informations. Ta mission : poser UNE SEULE question ciblée et concise au conseiller.\n\nDraft actuel :\n{{ JSON.stringify($json.draft, null, 2) }}\n\nProduits du facture trouve :\n{{ JSON.stringify($('Get Product').item.json.invoice_products) }} || []\n\nChamps manquants par ordre de priorité :\n{{ JSON.stringify($json.missing) }}\n\nRÈGLES STRICTES :\n\n1. Identifie le PREMIER champ dans missing[] qui a \"askable\": true\n2. IGNORE les champs avec \"askable\": false (ce sont des IDs système qui se rempliront automatiquement quand on aura la facture)\n3. Pose UNE SEULE question pour CE champ précis\n4. Si le champ est déjà présent dans le draft, NE LE REDEMANDE JAMAIS\n5. Réponds en MAXIMUM 2 lignes\n6. N'entoure JAMAIS ta réponse de ``` ou de balises markdown\n\nExemples selon le champ :\n- purchase.invoice_id → \"Quel est le numéro de facture ?\"\n- issue.type (si pas dans draft) → \"Quel est le type de panne : fuite, panne électrique, bruit, casse ou ne démarre pas ?\"\n- issue.description → \"Pouvez-vous décrire brièvement le problème constaté ?\"\n- customer.name → \"Quel est le nom du client ?\"\n- product.sku → \"Quel est le produit en question?\" (Énumérer tous les noms des produits figurant sur la facture trouvée afin que le conseiller puisse faire son choix)\n\nRéponds directement avec la question, sans préambule.",
+        "text": "=Tu es un assistant SAV de magasin. Tu parles à un conseiller en magasin.\nLe dossier SAV est en cours de création mais il manque des informations. Ta mission : poser TOUTES les questions nécessaires pour compléter le dossier en une seule fois.\nDraft actuel :\n{{ JSON.stringify($json.draft, null, 2) }}\nProduits de la facture trouvés :\n{{\n$('Get Product').isExecuted\n? JSON.stringify($('Get Product').item.json?.invoice_products ?? [])\n: '[]'\n}}\nChamps manquants par ordre de priorité :\n{{ JSON.stringify($json.missing) }}\nRÈGLES STRICTES :\n\nIdentifie TOUS les champs dans missing[] qui ont \"askable\": true\nIGNORE les champs avec \"askable\": false (ce sont des IDs système qui se rempliront automatiquement)\nPose UNE question par champ manquant, dans l'ordre de priorité\nNe redemande JAMAIS un champ déjà présent dans le draft\nPrésente les questions sous forme de liste numérotée, claire et concise\nN'entoure JAMAIS ta réponse de ``` ou de balises markdown\n\nExemples de formulation selon le champ :\n\npurchase.invoice_id → \"Quel est le numéro de facture ?\"\nissue.type → \"Quel est le type de panne : fuite, panne électrique, bruit, casse ou ne démarre pas ?\"\nissue.description → \"Pouvez-vous décrire brièvement le problème constaté ?\"\ncustomer.name → \"Quel est le nom du client ?\"\nproduct.sku → \"Quel est le produit concerné ?\" (énumérer tous les noms des produits figurant sur la facture trouvée)\n\nRéponds directement avec la liste numérotée des questions, sans préambule.",
         "batching": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        1200,
-        1248
+        2016,
+        656
       ],
-      "id": "e54cd4c6-15b5-49cf-a746-32485a0828b3",
+      "id": "7ad81c18-6578-48a1-9878-4db006cabc56",
       "name": "LLM Question"
     },
     {
@@ -228,10 +228,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        2128,
-        1344
+        2944,
+        752
       ],
-      "id": "7662da08-05f5-4265-8c9f-3228929e3b53",
+      "id": "95d96396-36e2-46fe-9496-e64e51a70551",
       "name": "Merge Response"
     },
     {
@@ -255,10 +255,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -1296,
-        1072
+        -480,
+        480
       ],
-      "id": "15eaf8b6-4359-4232-9d0f-75f48c4deadb",
+      "id": "c711dff4-9339-4d64-9d09-c3247c51bc19",
       "name": "PG Save Session"
     },
     {
@@ -268,10 +268,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1136,
-        1072
+        -320,
+        480
       ],
-      "id": "8fc5e3a6-e981-4dd1-86ed-5720235a73e6",
+      "id": "85e8172a-bf41-43ba-99ef-8068bee008aa",
       "name": "Passthrough"
     },
     {
@@ -295,10 +295,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        544,
-        1088
+        1360,
+        496
       ],
-      "id": "dba95467-522d-434c-94e3-b5cd6ecdeafc",
+      "id": "7ed57ea1-fae5-4334-ad4b-ac0fdea23009",
       "name": "PG Save Final"
     },
     {
@@ -308,10 +308,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        752,
-        1088
+        1568,
+        496
       ],
-      "id": "e3023816-70ff-422d-93d9-a937e3ac7dd9",
+      "id": "76086099-8122-4b21-860b-88f5f76160ab",
       "name": "Passthrough Final"
     },
     {
@@ -322,11 +322,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -2528,
-        800
+        -1712,
+        208
       ],
       "typeVersion": 1,
-      "id": "0e1145f5-89c9-494f-8df5-dcf043354b5f",
+      "id": "ffd81cef-2507-4a2f-a601-3ba9814cdf2a",
       "name": "Sticky Note"
     },
     {
@@ -416,10 +416,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        -1008,
-        1520
+        -192,
+        928
       ],
-      "id": "5b9edc10-a24c-4620-8241-15ce883165fb",
+      "id": "9df35d6f-5e03-46b1-b1ac-4b5f9828d3c1",
       "name": "Route Intent"
     },
     {
@@ -429,10 +429,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -432,
-        1248
+        384,
+        656
       ],
-      "id": "5621035e-3e65-463f-9b4d-49623fd73a6b",
+      "id": "6737fdcd-2166-49fe-ade1-75af7143f210",
       "name": "Check Ready"
     },
     {
@@ -463,10 +463,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -272,
-        1408
+        544,
+        816
       ],
-      "id": "66e5ed92-2e03-4f42-8989-2be77de0c6e1",
+      "id": "31072d7e-c225-430e-b8c0-d35162854a83",
       "name": "Is Ready?"
     },
     {
@@ -490,10 +490,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        128,
-        1392
+        944,
+        800
       ],
-      "id": "4c11ed71-f07b-48da-bc05-4e57522bbafe",
+      "id": "0676c4a1-d595-457d-9fce-bbce89132f57",
       "name": "Create SAV Ticket"
     },
     {
@@ -517,10 +517,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        304,
-        1392
+        1120,
+        800
       ],
-      "id": "d9b5319d-3258-407c-b412-c4cf2795a222",
+      "id": "6ed446ef-72a1-4354-9518-cb672b01ee34",
       "name": "Cleanup Session"
     },
     {
@@ -530,10 +530,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        512,
-        1392
+        1328,
+        800
       ],
-      "id": "e57596bb-969b-4801-804e-c9cab2c3692b",
+      "id": "862a1257-556a-495e-bb34-594a5f49c950",
       "name": "Prepare Confirmation"
     },
     {
@@ -545,10 +545,10 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        720,
-        1392
+        1536,
+        800
       ],
-      "id": "c6d357e7-783a-44b8-a49d-281606c39f41",
+      "id": "46a14ad7-7de0-4cad-b656-b6b7b9d6c3ff",
       "name": "LLM Confirmation"
     },
     {
@@ -560,10 +560,10 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        112,
-        1568
+        928,
+        976
       ],
-      "id": "24159728-9d83-46e4-9120-722814295627",
+      "id": "9a518235-728e-4d07-bf46-519cc7582f4b",
       "name": "LLM Incomplete"
     },
     {
@@ -587,10 +587,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -240,
-        1872
+        576,
+        1280
       ],
-      "id": "dda5f697-01ef-46e4-ab8f-d90306928777",
+      "id": "84d6d9f9-0278-4500-9d0c-beb202cb0ff8",
       "name": "Cancel Session"
     },
     {
@@ -610,10 +610,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        368,
-        1904
+        1184,
+        1312
       ],
-      "id": "5ef01a07-c31d-4201-8fe3-d47c09630fd6",
+      "id": "2bfdacc2-3a51-4bd6-8cdd-c6082ad423a4",
       "name": "Cancel Message"
     },
     {
@@ -633,10 +633,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -800,
-        1728
+        16,
+        1136
       ],
-      "id": "581da2cd-93ea-4195-935a-33b201654006",
+      "id": "2a3a96f1-e480-4b02-9bf1-b1c896fdc487",
       "name": "Fallback Message"
     },
     {
@@ -657,10 +657,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -2128,
-        1280
+        -1312,
+        688
       ],
-      "id": "be913487-5b8f-47d9-9a99-3d34f9050418",
+      "id": "5c1b0521-1f6e-46e3-a061-b831489dc619",
       "name": "PG New Session"
     },
     {
@@ -670,10 +670,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1920,
-        1072
+        -1104,
+        480
       ],
-      "id": "727fff12-3493-4e42-93e0-cafde8bfcd1a",
+      "id": "0b33b71b-6daf-4329-b168-2275c586c190",
       "name": "Merge Session"
     },
     {
@@ -704,31 +704,11 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2144,
-        1072
+        -1328,
+        480
       ],
-      "id": "827f07a4-c0a2-42c8-8d89-2f41617189c7",
+      "id": "de3cbf01-cd17-429d-9834-e7011bfc4f00",
       "name": "If Session Exist"
-    },
-    {
-      "parameters": {
-        "model": "openai/gpt-oss-120b",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
-      "typeVersion": 1,
-      "position": [
-        64,
-        1728
-      ],
-      "id": "75b42258-ae76-476f-8431-7e5d81c9a7c2",
-      "name": "Groq Chat Model1",
-      "credentials": {
-        "groqApi": {
-          "id": "fP8xkejAfeuEsdgN",
-          "name": "Groq account"
-        }
-      }
     },
     {
       "parameters": {
@@ -747,71 +727,11 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -2336,
-        1072
+        -1520,
+        480
       ],
-      "id": "19db925b-c072-4e86-a5fd-31b84d522c63",
+      "id": "6a097e55-e404-4d43-a7bc-680556b7fe52",
       "name": "PG Load Session"
-    },
-    {
-      "parameters": {
-        "model": "openai/gpt-oss-120b",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
-      "typeVersion": 1,
-      "position": [
-        1136,
-        1456
-      ],
-      "id": "4206b373-cf94-4713-8da3-1ece5d9f1e0b",
-      "name": "Groq Chat Model",
-      "credentials": {
-        "groqApi": {
-          "id": "fP8xkejAfeuEsdgN",
-          "name": "Groq account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": "openai/gpt-oss-20b",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
-      "typeVersion": 1,
-      "position": [
-        656,
-        1600
-      ],
-      "id": "b5fe9e5a-3106-4789-9bfc-1066b6589ebd",
-      "name": "Groq Chat Model2",
-      "credentials": {
-        "groqApi": {
-          "id": "fP8xkejAfeuEsdgN",
-          "name": "Groq account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": "openai/gpt-oss-120b",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
-      "typeVersion": 1,
-      "position": [
-        -1712,
-        1248
-      ],
-      "id": "3f22ae11-14d2-46ff-b6b8-5492a140e2b1",
-      "name": "Groq Chat Model3",
-      "credentials": {
-        "groqApi": {
-          "id": "fP8xkejAfeuEsdgN",
-          "name": "Groq account"
-        }
-      }
     },
     {
       "parameters": {
@@ -830,10 +750,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -512,
-        816
+        304,
+        224
       ],
-      "id": "9053a679-16b4-4a74-b16c-c879abfea34d",
+      "id": "5b43c51b-3c7c-426a-89f7-6723f8113fae",
       "name": "Get Invoices"
     },
     {
@@ -853,10 +773,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -160,
-        832
+        656,
+        240
       ],
-      "id": "9018999b-b43a-4522-be75-3dc2dace57b1",
+      "id": "83f08355-a321-4311-95a1-0a4f4a1788c0",
       "name": "Get Products"
     },
     {
@@ -887,10 +807,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -304,
-        976
+        512,
+        384
       ],
-      "id": "91f0784d-b62e-4adf-93b0-e675d0e2e8ba",
+      "id": "2841d479-eaaa-4b55-b2d3-47821d879bc5",
       "name": "Invoice Found?"
     },
     {
@@ -901,14 +821,94 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        1248,
-        1072
+        -1024,
+        688
       ],
-      "id": "71640813-3424-4653-81cb-ed396ef21370",
+      "id": "875f1059-1b81-4147-addc-65e7d7988745",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "5gGSzuk8KcCYAQGg",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        512
+      ],
+      "id": "3a9678ea-ebd8-472e-b4a6-d35aa0d0d83a",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "5gGSzuk8KcCYAQGg",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        768
+      ],
+      "id": "4047c007-e6b6-46db-a0c2-e4667d1ac1b7",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "5gGSzuk8KcCYAQGg",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        944
+      ],
+      "id": "e57c6c3c-c33d-408e-adad-788e6213034e",
+      "name": "Groq Chat Model3",
+      "credentials": {
+        "groqApi": {
+          "id": "5gGSzuk8KcCYAQGg",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        1216
+      ],
+      "id": "20cdb4d6-d5ae-4df5-b73f-bb5e4491650e",
       "name": "Groq Chat Model4",
       "credentials": {
         "groqApi": {
-          "id": "fP8xkejAfeuEsdgN",
+          "id": "5gGSzuk8KcCYAQGg",
           "name": "Groq account"
         }
       }
@@ -1295,56 +1295,12 @@
         ]
       ]
     },
-    "Groq Chat Model1": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "LLM Incomplete",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "PG Load Session": {
       "main": [
         [
           {
             "node": "If Session Exist",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Groq Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "LLM Question",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Groq Chat Model2": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "LLM Confirmation",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Groq Chat Model3": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "LLM Extract",
-            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -1390,11 +1346,55 @@
         ]
       ]
     },
-    "Groq Chat Model4": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Extract",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
       "ai_languageModel": [
         [
           {
             "node": "LLM Recap",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Question",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Confirmation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Incomplete",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -1405,13 +1405,14 @@
   "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": false
   },
-  "versionId": "31416574-a5e2-47f2-a32d-3a022bd202c1",
+  "versionId": "1f278294-f40c-4ba8-939f-059de449a530",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "843fdc15c4af75420d41ff38c62a401f4ae90ecc1d58d36bab01fdd2b6e450d8"
   },
-  "id": "k2fpMOEVGGIoUsxx",
+  "id": "MTm0S6aobwfFfTkt",
   "tags": []
 }

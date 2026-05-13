@@ -81,11 +81,12 @@ model InvoiceLine {
 }
 
 model ConfigValue {
-  config_code String @db.VarChar(100)
-  value_code  String @db.VarChar(100)
-  label_fr    String? @db.VarChar(200)
-  label_en    String? @db.VarChar(200)
-  sort_order  Int    @default(0)
+  config_code   String  @db.VarChar(100)
+  value_code    String  @db.VarChar(100)
+  label_fr      String? @db.VarChar(200)
+  label_en      String? @db.VarChar(200)
+  display_order Int     @default(0)
+  active        Boolean @default(true)
 
   @@id([config_code, value_code])
   @@map("config_values")
